@@ -40,12 +40,32 @@ class EditorStatus(HUDLayer):
         self.note.value = str(text)
 
     def show(self, title: str = '', points: int = 0, length: float = 0.0,
-             scale: float = 1.0, tool: str = '') -> None:
-        """Put the current state on the read-outs."""
+             scale: float = 1.0, tool: str = '',
+             structures: dict[str, int] | None = None) -> None:
+        """Put the current state on the read-outs.
+
+        ``structures`` is what the line has on it, by kind. A length on its own
+        says nothing about the third of a route that is a viaduct, and that is
+        the expensive third.
+        """
         self.title.value = title
-        self.route.value = '%d points, %s' % (points, _distance(length))
+        self.route.value = '%d points, %s%s' % (points, _distance(length),
+                                                _built(structures))
         self.scale.value = '%s / pixel' % _distance(scale, small=True)
         self.tool.value = tool
+
+
+def _built(structures: dict[str, int] | None) -> str:
+    """What is on the line, as a person would read it out.
+
+    In a settled order rather than the dictionary's, so a rebuild that happens
+    to enumerate them the other way does not make the label flicker.
+    """
+    if not structures:
+        return ''
+    said = ['%d %s%s' % (count, kind, '' if count == 1 else 's')
+            for kind, count in sorted(structures.items()) if count]
+    return ' -- ' + ', '.join(said) if said else ''
 
 
 def _distance(metres: float, small: bool = False) -> str:

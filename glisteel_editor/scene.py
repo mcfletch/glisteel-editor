@@ -1,4 +1,5 @@
-"""What the plan view draws: the land, the line, and the road it makes.
+"""What the plan view draws: the land, the line, the road it makes, and what
+carries it.
 
 Three things, and each is rebuilt on a different schedule, because they cost
 different amounts. The **land** is a second of arithmetic and is meshed once per
@@ -10,7 +11,9 @@ watching.
 
 The ground drawn is the ground that will be *baked*, earthworks and all: a
 designer who cannot see the cutting cannot see what the line is doing to the
-landscape.
+landscape. For the same reason the **structures** are drawn over the line: where
+a road is carried on a deck or through a bore is the most expensive decision the
+line makes, and from above the carriageway alone says nothing about it.
 """
 from __future__ import annotations
 
@@ -47,6 +50,21 @@ LIFT = 3.0
 #: tile: this is a picture of where the road goes, not the road.
 PREVIEW_SPACING = 8.0
 
+#: How the stretches that are not plain road are marked, over the line. A
+#: designer reads these as cost: a deck and a bore are what a line crossing the
+#: wrong ground turns into.
+STRUCTURE_COLOURS = {
+    'bridge': (0.35, 0.80, 1.00),
+    'tunnel': (1.00, 0.45, 0.35),
+    'causeway': (0.55, 0.95, 0.60),
+}
+
+#: How far above the ground the structure marks float, over the line itself,
+#: and how wide they are drawn as a multiple of the road's own width -- wider,
+#: because at the scale a whole circuit is drawn at a road is a hairline.
+STRUCTURE_LIFT = LIFT * 1.6
+STRUCTURE_WIDTH = 4.0
+
 MARKER_COLOUR = (0.95, 0.75, 0.20)
 HOVERED_COLOUR = (1.0, 0.35, 0.25)
 LINE_COLOUR = (1.0, 0.85, 0.35)
@@ -61,6 +79,7 @@ class MapScene:
         self.resolution = int(resolution)
         self._ground: Shape | None = None
         self._road: Shape | None = None
+        self._structures: Shape | None = None
         self._world: Any = None
         #: The road surface, built once: it paints a 512-pixel texture, and the
         #: road is rebuilt every time the line settles.
@@ -77,12 +96,14 @@ class MapScene:
         """Forget everything derived: the project has changed underneath."""
         self._ground = None
         self._road = None
+        self._structures = None
         self._world = None
 
     def route_changed(self) -> None:
         """The line moved: the road and the ground it cuts are out of date."""
         self._ground = None
         self._road = None
+        self._structures = None
         self._world = None
 
     def height_at(self, x: Any, z: Any) -> Any:
@@ -134,6 +155,64 @@ class MapScene:
                                appearance=Appearance(material=self._tarmac))
         return self._road
 
+    # -- what carries the road --------------------------------------------
+    def structures(self) -> Shape | None:
+        """The stretches of the line that are a deck, a bore or a causeway.
+
+        One coloured line per stretch, over the road it replaces: the plan view
+        is where a designer decides whether a route is worth what it costs, and
+        from above a viaduct looks exactly like a road.
+        """
+        if self._structures is not None:
+            return self._structures
+        route = self.project.route()
+        if route is None or not route.is_road():
+            return None
+        path = self.world().circuit()
+        half = path.profile.total_width * STRUCTURE_WIDTH / 2.0
+        points: list[list[float]] = []
+        colours: list[tuple[float, float, float, float]] = []
+        faces: list[int] = []
+        for kind, start, end in path.structure_runs():
+            run = path.points[(path.stations >= start)
+                              & (path.stations <= end)][::2]
+            if len(run) < 2:
+                continue
+            colour = STRUCTURE_COLOURS.get(str(kind), MARKER_COLOUR) + (1.0,)
+            first = len(points)
+            step = np.diff(run[:, [0, 2]], axis=0, append=run[-1:, [0, 2]])
+            across = np.stack([-step[:, 1], step[:, 0]], axis=-1)
+            across /= np.maximum(np.linalg.norm(across, axis=1, keepdims=True),
+                                 1e-9)
+            for (x, _y, z), (ax, az) in zip(run, across, strict=True):
+                lift = self.height_at(x, z) + STRUCTURE_LIFT
+                points.append([float(x - ax * half), lift, float(z - az * half)])
+                points.append([float(x + ax * half), lift, float(z + az * half)])
+                colours.extend((colour, colour))
+            for step_index in range(len(run) - 1):
+                a = first + step_index * 2
+                faces.extend((a, a + 1, a + 2, a + 1, a + 3, a + 2))
+        if not faces:
+            return None
+        self._structures = Shape(
+            geometry=PBRMesh(positions=np.asarray(points, 'f'),
+                             colors=np.asarray(colours, 'f'),
+                             indices=np.asarray(faces, np.uint32)),
+            appearance=Appearance(material=PBRMaterial(
+                baseColor=(1.0, 1.0, 1.0), emissiveColor=(1.0, 1.0, 1.0),
+                metallic=0.0, roughness=1.0, unlit=True, doubleSided=True)))
+        return self._structures
+
+    def structure_counts(self) -> dict[str, int]:
+        """How many of each kind the line has on it, for the read-outs."""
+        route = self.project.route()
+        if route is None or not route.is_road():
+            return {}
+        found: dict[str, int] = {}
+        for kind, _start, _end in self.world().circuit().structure_runs():
+            found[str(kind)] = found.get(str(kind), 0) + 1
+        return found
+
     # -- the line the designer drew ---------------------------------------
     def guide(self) -> Shape | None:
         """The drawn line itself, joining the points in the order drawn."""
@@ -181,5 +260,8 @@ class MapScene:
         guide = self.guide()
         if guide is not None:
             children.append(guide)
+        structures = self.structures()
+        if structures is not None:
+            children.append(structures)
         children.append(self.markers(metres_per_pixel, hovered))
         return Group(children=children)

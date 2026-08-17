@@ -158,7 +158,8 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
             points=len(route.points) if route else 0,
             length=route.length() if route else 0.0,
             scale=self.view.metres_per_pixel(self.getViewPort()),
-            tool=self.tools.active.label if self.tools.active else '')
+            tool=self.tools.active.label if self.tools.active else '',
+            structures=self.scene.structure_counts())
 
     def ViewPort(self, width: int, height: int) -> None:
         """The window changed size: the map is measured against it.

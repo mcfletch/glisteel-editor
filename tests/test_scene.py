@@ -180,3 +180,70 @@ class TestWhatGoesInTheWindow:
 
 if __name__ == '__main__':
     raise SystemExit(pytest.main([__file__, '-v']))
+
+
+class TestWhereTheRoadIsCarried:
+    """A plan view that draws only the carriageway tells a designer nothing
+    about the third of the line that is a viaduct or a bore -- and where a road
+    is carried is the most expensive decision the line makes."""
+
+    def _scene(self, radius=520.0, points=14):
+        import math
+
+        from glisteel_editor.project import Landscape, Project, Route
+        from glisteel_editor.scene import MapScene
+        plan = [(radius * math.cos(2 * math.pi * i / points),
+                 radius * 0.75 * math.sin(2 * math.pi * i / points))
+                for i in range(points)]
+        project = Project(name='drawn',
+                          landscape=Landscape(extent=2048.0, seed=11,
+                                              resolution=17),
+                          routes=[Route(name='circuit', closed=True,
+                                        points=plan)])
+        return MapScene(project)
+
+    def test_the_structures_are_drawn(self) -> None:
+        found = self._scene().structures()
+        assert found is not None
+
+    def test_a_line_too_short_to_be_a_road_has_none(self) -> None:
+        from glisteel_editor.project import Landscape, Project, Route
+        from glisteel_editor.scene import MapScene
+        project = Project(name='x', landscape=Landscape(extent=1024.0),
+                          routes=[Route(name='c', points=[(0.0, 0.0)])])
+        assert MapScene(project).structures() is None
+
+    def test_each_kind_has_its_own_colour(self) -> None:
+        """A deck and a bore are two different things to a designer."""
+        from glisteel_editor.scene import STRUCTURE_COLOURS
+        scene = self._scene()
+        mesh = scene.structures().geometry
+        colours = {tuple(round(float(v), 3) for v in one[:3])
+                   for one in mesh.colors}
+        wanted = {tuple(round(float(v), 3) for v in STRUCTURE_COLOURS[kind])
+                  for kind in scene.structure_counts()}
+        assert colours == wanted
+
+    def test_they_are_wide_enough_to_see_at_map_scale(self) -> None:
+        """A road drawn at a kilometre a screen is a hairline."""
+        from glisteel_editor.scene import STRUCTURE_WIDTH
+        scene = self._scene()
+        assert STRUCTURE_WIDTH > 1.0
+        assert len(scene.structures().geometry.positions) > 8
+
+    def test_they_are_part_of_what_the_map_draws(self) -> None:
+        scene = self._scene()
+        drawn = list(scene.build(metres_per_pixel=2.0).children)
+        assert scene.structures() in drawn
+
+    def test_the_route_reports_what_is_on_it(self) -> None:
+        counts = self._scene().structure_counts()
+        assert sum(counts.values()) > 0
+        assert set(counts) <= {'bridge', 'tunnel', 'causeway'}
+
+    def test_a_flat_route_reports_none(self) -> None:
+        from glisteel_editor.project import Landscape, Project, Route
+        from glisteel_editor.scene import MapScene
+        project = Project(name='x', landscape=Landscape(extent=1024.0),
+                          routes=[Route(name='c', points=[(0.0, 0.0)])])
+        assert MapScene(project).structure_counts() == {}

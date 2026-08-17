@@ -67,3 +67,50 @@ class TestWhereItGoes:
 
 if __name__ == '__main__':
     raise SystemExit(pytest.main([__file__, '-v']))
+
+
+class TestWhatTheLineCosts:
+    """A designer reading "4.09 km" learns nothing about the third of it that
+    is a viaduct. The read-out says what is on the line as well as how long it
+    is."""
+
+    def _status(self):
+        from glisteel_editor.status import EditorStatus
+        return EditorStatus()
+
+    def test_a_plain_road_says_only_its_length(self) -> None:
+        status = self._status()
+        status.show(title='t', points=4, length=1200.0, scale=2.0)
+        assert status.route.value == '4 points, 1.20 km'
+
+    def test_structures_are_named_and_counted(self) -> None:
+        status = self._status()
+        status.show(title='t', points=4, length=1200.0, scale=2.0,
+                    structures={'bridge': 2, 'tunnel': 1})
+        assert '2 bridges' in status.route.value
+        assert '1 tunnel' in status.route.value
+
+    def test_one_of_a_kind_is_singular(self) -> None:
+        status = self._status()
+        status.show(title='t', points=4, length=1200.0, scale=2.0,
+                    structures={'bridge': 1})
+        assert '1 bridge,' in status.route.value + ','
+        assert 'bridges' not in status.route.value
+
+    def test_a_causeway_is_spelt_properly_in_the_plural(self) -> None:
+        status = self._status()
+        status.show(title='t', points=4, length=1200.0, scale=2.0,
+                    structures={'causeway': 3})
+        assert '3 causeways' in status.route.value
+
+    def test_they_come_out_in_a_settled_order(self) -> None:
+        """Two counts that swap places every rebuild are a flickering label."""
+        status = self._status()
+        first = {'tunnel': 1, 'bridge': 2}
+        second = {'bridge': 2, 'tunnel': 1}
+        status.show(title='t', points=4, length=1.0, scale=1.0,
+                    structures=first)
+        one = status.route.value
+        status.show(title='t', points=4, length=1.0, scale=1.0,
+                    structures=second)
+        assert status.route.value == one
