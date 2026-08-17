@@ -18,6 +18,7 @@ Keys::
     wheel                zoom about the pointer
     f                    frame the whole landscape
     delete               remove the point under the pointer
+    ctrl-z / ctrl-y      undo, redo
     ctrl-s / ctrl-o      save / open
     ctrl-b               bake a world
     ctrl-d               drive what was baked
@@ -196,6 +197,12 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
     def _toolTook(self, event: Any) -> bool:
         kind = getattr(event, 'type', None)
         if kind == 'keyboard' and getattr(event, 'state', 0):
+            if event.name == '<ctrl-z>':
+                self._undo()
+                return True
+            if event.name == '<ctrl-y>':
+                self._redo()
+                return True
             return self.controls.key(event.name, tuple(event.getModifiers()))
         if kind == 'mousebutton':
             return bool(self.controls.button(event))
@@ -228,6 +235,12 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
                          on_activate=lambda w: self._drive()),
                 Separator(),
                 MenuItem(text='Quit', on_activate=lambda w: self._quit()),
+            ]),
+            ('Edit', [
+                MenuItem(text='Undo', shortcut='<ctrl-z>',
+                         on_activate=lambda w: self._undo()),
+                MenuItem(text='Redo', shortcut='<ctrl-y>',
+                         on_activate=lambda w: self._redo()),
             ]),
             ('Route', [
                 MenuItem(text='Closed circuit', checkable=True,
@@ -274,6 +287,18 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         self.project.save(path)
         self._say("Saved %s" % path)
         self._report()
+
+    def _undo(self) -> None:
+        if self.editor.undo():
+            self._settle()
+        else:
+            self._say("Nothing to undo.")
+
+    def _redo(self) -> None:
+        if self.editor.redo():
+            self._settle()
+        else:
+            self._say("Nothing to redo.")
 
     def _clear(self) -> None:
         route = self._route()

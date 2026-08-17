@@ -206,3 +206,104 @@ class TestClosingTheCircuit:
 
 if __name__ == '__main__':
     raise SystemExit(pytest.main([__file__, '-v']))
+
+
+class TestTakingItBack:
+    """An editor that cannot undo loses work, and a designer drawing a line
+    with the pointer makes a wrong point every few minutes."""
+
+    def _editor(self):
+        return RouteEditor(_route(), reach=10.0)
+
+    def test_a_point_added_can_be_taken_back(self) -> None:
+        editor = self._editor()
+        editor.append((500.0, 500.0))
+        assert editor.undo() is True
+        assert (500.0, 500.0) not in editor.route.points
+
+    def test_a_point_moved_goes_back_where_it_was(self) -> None:
+        editor = self._editor()
+        before = list(editor.route.points)
+        editor.move(1, (900.0, 900.0))
+        editor.undo()
+        assert editor.route.points == before
+
+    def test_a_point_taken_out_comes_back(self) -> None:
+        editor = self._editor()
+        before = list(editor.route.points)
+        editor.remove(2)
+        editor.undo()
+        assert editor.route.points == before
+
+    def test_it_comes_back_where_it_was_in_the_line(self) -> None:
+        """Not on the end: a route is an order."""
+        editor = self._editor()
+        before = list(editor.route.points)
+        editor.remove(1)
+        editor.undo()
+        assert editor.route.points[1] == before[1]
+
+    def test_closing_the_route_can_be_taken_back(self) -> None:
+        editor = self._editor()
+        editor.close_route(False)
+        editor.undo()
+        assert editor.route.closed
+
+    def test_several_steps_come_back_in_turn(self) -> None:
+        editor = self._editor()
+        editor.append((10.0, 10.0))
+        editor.append((20.0, 20.0))
+        editor.undo()
+        assert editor.route.points[-1] == (10.0, 10.0)
+        editor.undo()
+        assert (10.0, 10.0) not in editor.route.points
+
+    def test_with_nothing_to_undo_it_says_so(self) -> None:
+        assert self._editor().undo() is False
+
+    def test_undoing_is_a_change_like_any_other(self) -> None:
+        seen = []
+        editor = self._editor()
+        editor.append((1.0, 1.0))
+        editor.on_change = lambda: seen.append(1)
+        editor.undo()
+        assert seen == [1]
+
+    def test_what_was_undone_can_be_done_again(self) -> None:
+        editor = self._editor()
+        editor.append((500.0, 500.0))
+        editor.undo()
+        assert editor.redo() is True
+        assert editor.route.points[-1] == (500.0, 500.0)
+
+    def test_with_nothing_to_redo_it_says_so(self) -> None:
+        assert self._editor().redo() is False
+
+    def test_a_fresh_change_forgets_what_was_undone(self) -> None:
+        """Or redo would put back a line that never existed."""
+        editor = self._editor()
+        editor.append((500.0, 500.0))
+        editor.undo()
+        editor.append((1.0, 2.0))
+        assert editor.redo() is False
+
+    def test_it_does_not_remember_for_ever(self) -> None:
+        editor = self._editor()
+        for i in range(RouteEditor.HISTORY * 3):
+            editor.append((float(i), 0.0))
+        undone = 0
+        while editor.undo():
+            undone += 1
+        assert undone == RouteEditor.HISTORY
+
+    def test_a_drag_is_one_step_rather_than_one_per_pixel(self) -> None:
+        """A point dragged across the map moves a hundred times; taking that
+        back a hundred times is not undo."""
+        editor = self._editor()
+        before = list(editor.route.points)
+        editor.begin_step()
+        for x in range(200, 260):
+            editor.move(1, (float(x), 0.0))
+        editor.end_step()
+        assert editor.undo() is True
+        assert editor.route.points == before

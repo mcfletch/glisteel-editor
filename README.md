@@ -25,6 +25,7 @@ you in the car.
 | right drag | move the map |
 | wheel | zoom about the pointer |
 | `delete` | take out the point under the pointer |
+| `ctrl-z` / `ctrl-y` | undo, redo |
 | `f` | frame the whole landscape |
 
 The road is regenerated when you let go, not while you are dragging: settling an
@@ -80,7 +81,7 @@ plan view, the tool modes and the menus belong to the engine's
 | Module | Holds |
 |---|---|
 | `project.py` | a designer's decisions, and the file they live in |
-| `editing.py` | the line being drawn, and what the pointer does to it |
+| `editing.py` | the line being drawn, what the pointer does to it, and what it was |
 | `controls.py` | what the pointer did, and what the map and the tools do about it |
 | `scene.py` | what the plan view draws: the land, the line, the road |
 | `status.py` | the five things the editor tells you |
@@ -92,8 +93,8 @@ plan view, the tool modes and the menus belong to the engine's
   elevation is the terrain pipeline's next piece of work.
 - **One route per project.** The model holds a list; the interface draws the
   first.
-- **No undo.** Escape abandons a drag; nothing brings back a point that has been
-  taken out.
+- **Undo is the route only.** Changing the landscape's size or seed is not on
+  the history.
 - **`Open` reopens the file named on the command line** rather than putting up a
   file browser.
 

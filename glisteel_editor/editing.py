@@ -35,7 +35,18 @@ def _flat(point: Any) -> tuple[float, float]:
 
 
 class RouteEditor:
-    """A route being drawn, and what the pointer can reach on it."""
+    """A route being drawn, what the pointer can reach on it, and what it was.
+
+    Every change is taken with the line's previous state kept, so it can be
+    given back: an editor that cannot undo loses work, and a designer drawing
+    with a pointer makes a wrong point every few minutes. A drag is one step
+    rather than one per pixel -- see :meth:`begin_step`.
+    """
+
+    #: How many changes are remembered. Enough to get out of a wrong turn;
+    #: bounded, because a session lasts hours and a route is a list of points
+    #: that would otherwise be kept once per pointer movement.
+    HISTORY = 64
 
     def __init__(self, route: Route, reach: float = DEFAULT_REACH,
                  on_change: Callable[[], None] | None = None) -> None:
@@ -46,6 +57,10 @@ class RouteEditor:
         self.on_change = on_change
         #: The point the pointer is over, for whoever is drawing the map.
         self.hovered: int | None = None
+        self._past: list[tuple[list[tuple[float, float]], bool]] = []
+        self._future: list[tuple[list[tuple[float, float]], bool]] = []
+        #: Depth of the gesture in progress: changes inside one are one step.
+        self._grouped = 0
 
     # -- what is under the pointer ----------------------------------------
     def point_at(self, where: Any) -> int | None:
@@ -88,12 +103,14 @@ class RouteEditor:
     # -- changing it -------------------------------------------------------
     def append(self, where: Any) -> int:
         """Put a point at the end of the line."""
+        self._take()
         self.route.points.append(_flat(where))
         self._changed()
         return len(self.route.points) - 1
 
     def insert(self, index: int, where: Any) -> int:
         """Put a point into the line at ``index``."""
+        self._take()
         self.route.points.insert(int(index), _flat(where))
         self._changed()
         return int(index)
@@ -102,6 +119,7 @@ class RouteEditor:
         """Put the point at ``index`` somewhere else."""
         if not 0 <= int(index) < len(self.route.points):
             return
+        self._take()
         self.route.points[int(index)] = _flat(where)
         self._changed()
 
@@ -109,6 +127,7 @@ class RouteEditor:
         """Take a point out of the line."""
         if not 0 <= int(index) < len(self.route.points):
             return
+        self._take()
         del self.route.points[int(index)]
         if self.hovered is not None and self.hovered >= len(self.route.points):
             self.hovered = None
@@ -118,8 +137,62 @@ class RouteEditor:
         """Say whether the route comes back to where it started."""
         if bool(closed) == bool(self.route.closed):
             return
+        self._take()
         self.route.closed = bool(closed)
         self._changed()
+
+    def _take(self) -> None:
+        """Keep the line as it is, unless a gesture already has."""
+        if not self._grouped:
+            self._remember()
+
+    # -- taking it back -----------------------------------------------------
+    def begin_step(self) -> None:
+        """Start a gesture: everything until :meth:`end_step` is one change.
+
+        A point dragged across the map moves a hundred times, and taking that
+        back a hundred times is not undo.
+        """
+        if not self._grouped:
+            self._remember()
+        self._grouped += 1
+
+    def end_step(self) -> None:
+        """Finish the gesture begun by :meth:`begin_step`."""
+        self._grouped = max(0, self._grouped - 1)
+
+    def undo(self) -> bool:
+        """Put the line back as it was before the last change. False if there
+        was none."""
+        if not self._past:
+            return False
+        self._future.append(self._state())
+        self._restore(self._past.pop())
+        return True
+
+    def redo(self) -> bool:
+        """Do again what was undone. False if nothing was."""
+        if not self._future:
+            return False
+        self._past.append(self._state())
+        self._restore(self._future.pop())
+        return True
+
+    def _state(self) -> tuple[list[tuple[float, float]], bool]:
+        return (list(self.route.points), bool(self.route.closed))
+
+    def _restore(self, state: tuple[list[tuple[float, float]], bool]) -> None:
+        self.route.points[:] = state[0]
+        self.route.closed = state[1]
+        if self.hovered is not None and self.hovered >= len(self.route.points):
+            self.hovered = None
+        self._changed()
+
+    def _remember(self) -> None:
+        """Keep the line as it is, and forget any future that is now wrong."""
+        self._past.append(self._state())
+        del self._past[:-self.HISTORY]
+        self._future.clear()
 
     def _changed(self) -> None:
         if self.on_change is not None:
@@ -153,6 +226,7 @@ class RouteTool(ToolMode):
         """Put a dragged point back where it started."""
         if self._dragging is not None and self._was is not None:
             self.editor.move(self._dragging, self._was)
+            self.editor.end_step()
         self._dragging = None
         self._was = None
 
@@ -182,6 +256,8 @@ class RouteTool(ToolMode):
         if found is not None:
             self._dragging = found
             self._was = self.editor.route.points[found]
+            # One step for the whole drag, however many pixels it crosses.
+            self.editor.begin_step()
             return True
         segment = self.editor.segment_at(pointer.world)
         if segment is not None:
@@ -198,6 +274,8 @@ class RouteTool(ToolMode):
 
     def on_release(self, pointer: Pointer) -> bool:
         taken = self._dragging is not None
+        if taken:
+            self.editor.end_step()
         self._dragging = None
         self._was = None
         return taken
