@@ -1,0 +1,89 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "glisteel-editor"
+dynamic = ["version"]
+description = "The GLinting Steel track editor: draw a circuit on a landscape and bake a world to drive"
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["license.txt"]
+requires-python = ">=3.10"
+authors = [
+    { name = "Mike C. Fletcher", email = "mcfletch@vrplumber.com" }
+]
+keywords = ["editor", "racing", "OpenGLContext", "OpenGL", "3D Tiles", "terrain", "3D"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: X11 Applications",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Graphics :: 3D Modeling",
+    "Topic :: Games/Entertainment :: Simulation",
+]
+
+# The engine draws the map and runs the interface; the authoring package
+# generates the road and bakes the world. The *game* is not a dependency: an
+# editor that cannot find one still edits, and says so when asked to drive.
+dependencies = [
+    "OpenGLContext[glfw]>=3.0.0a1",
+    "OpenGLContext-editor",
+    "numpy>=2.0",
+]
+
+[project.optional-dependencies]
+# Driving what has been baked, from inside the editor.
+drive = ["glisteel"]
+dev = ["glisteel-editor[drive]", "pytest", "pytest-cov", "pytest-timeout", "ruff", "mypy"]
+
+[project.urls]
+Repository = "https://github.com/mcfletch/glisteel-editor"
+
+[project.scripts]
+glisteel-editor = "glisteel_editor.app:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "glisteel_editor.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["glisteel_editor*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "B",    # flake8-bugbear
+    "I",    # import ordering
+    "UP",   # pyupgrade
+    "BLE",  # no blind except
+    "S110", # no silent try/except/pass
+]
+ignore = [
+    "E501",   # line too long -- kept readable by hand, as in the engine
+    "E741",   # ambiguous name -- x/y/z read naturally as coordinates
+    "UP031",  # percent formatting, as the engine uses throughout
+]
+
+[tool.ruff.lint.per-file-ignores]
+# The entry module sets the OPENGLCONTEXT_* environment the engine reads at
+# import time, so its imports deliberately are not all at the top.
+"glisteel_editor/app.py" = ["E402"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_ignores = true
+ignore_missing_imports = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+timeout = 300
