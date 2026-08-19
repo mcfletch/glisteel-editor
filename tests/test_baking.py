@@ -9,6 +9,7 @@ import json
 import math
 import os
 
+import numpy as np
 import pytest
 
 from glisteel_editor.project import Landscape, Project, Route
@@ -119,3 +120,30 @@ def _uris(entry, out=None):
 
 if __name__ == '__main__':
     raise SystemExit(pytest.main([__file__, '-v']))
+
+
+class TestWhereTheLapBegins:
+    """The start/finish is a designer's decision, and the game reads it back."""
+
+    def test_the_road_the_game_reads_says_where_a_lap_starts(self, baked) -> None:
+        _project, _result, document = baked
+        road = document['extras']['roads'][0]
+        assert 'start' in road
+        assert 0.0 <= road['start'] <= road['length']
+
+    def test_a_chosen_start_travels_into_the_world(self, tmp_path) -> None:
+        from OpenGLContext_editor.bake.driver import bake_world
+        project = _drawn()
+        project.route().start = 5
+        directory = str(tmp_path / 'world')
+        result = bake_world(project.world().layers(), directory, depth=1)
+        with open(result.tileset) as handle:
+            document = json.load(handle)
+        assert document['extras']['roads'][0]['start'] > 0.0
+
+    def test_a_circuit_turned_round_is_a_different_line(self, tmp_path) -> None:
+        project = _drawn()
+        forward = project.world().circuit().points.copy()
+        project.route().reversed = True
+        backward = project.world().circuit().points
+        assert not np.allclose(forward[:len(backward)], backward[:len(forward)])

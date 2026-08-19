@@ -181,3 +181,75 @@ class TestTheKeyboard:
 
 if __name__ == '__main__':
     raise SystemExit(pytest.main([__file__, '-v']))
+
+
+class TestLookingAtItFromAnAngle:
+    """The three-quarter view: the pointer moves the camera, not the line."""
+
+    def _rig(self, **named):
+        from OpenGLContext.edit.orbitview import OrbitView
+
+        from glisteel_editor.controls import OrbitControls
+        view = OrbitView(centre=(0.0, 0.0), distance=800.0, **named)
+        moved = []
+        return OrbitControls(view, lambda: VIEWPORT,
+                             on_change=lambda: moved.append(1)), view, moved
+
+    def test_a_drag_turns_the_camera_round(self) -> None:
+        controls, view, _moved = self._rig(heading=0.0)
+        controls.button(_Event(400, 300, 0, 1))
+        controls.moved(_Event(460, 300))
+        assert view.heading != 0.0
+
+    def test_dragging_up_the_screen_raises_the_camera(self) -> None:
+        controls, view, _moved = self._rig(pitch=30.0)
+        controls.button(_Event(400, 300, 0, 1))
+        controls.moved(_Event(400, 360))
+        assert view.pitch > 30.0
+
+    def test_it_keeps_looking_at_the_same_place(self) -> None:
+        controls, view, _moved = self._rig()
+        where = view.target().copy()
+        controls.button(_Event(400, 300, 0, 1))
+        controls.moved(_Event(500, 380))
+        assert list(view.target()) == list(where)
+
+    def test_a_drag_is_measured_from_where_it_last_was(self) -> None:
+        controls, view, _moved = self._rig(heading=0.0)
+        controls.button(_Event(400, 300, 0, 1))
+        controls.moved(_Event(410, 300))
+        once = view.heading
+        controls.moved(_Event(420, 300))
+        assert view.heading == pytest.approx(once * 2.0)
+
+    def test_the_wheel_moves_in_and_out(self) -> None:
+        controls, view, _moved = self._rig()
+        controls.button(_Event(400, 300, 4, 1))
+        assert view.distance < 800.0
+        controls.button(_Event(400, 300, 3, 1))
+        assert view.distance == pytest.approx(800.0)
+
+    def test_a_move_with_nothing_held_does_nothing(self) -> None:
+        controls, view, _moved = self._rig(heading=0.0)
+        controls.moved(_Event(700, 700))
+        assert view.heading == 0.0
+
+    def test_the_release_ends_the_drag(self) -> None:
+        controls, view, _moved = self._rig(heading=0.0)
+        controls.button(_Event(400, 300, 0, 1))
+        controls.button(_Event(400, 300, 0, 0))
+        controls.moved(_Event(700, 300))
+        assert view.heading == 0.0
+
+    def test_it_says_when_the_camera_moved(self) -> None:
+        controls, _view, moved = self._rig()
+        controls.button(_Event(400, 300, 0, 1))
+        controls.moved(_Event(420, 300))
+        assert moved == [1]
+
+    def test_every_button_orbits(self) -> None:
+        """There is nothing else for the pointer to do here."""
+        controls, view, _moved = self._rig(heading=0.0)
+        controls.button(_Event(400, 300, 2, 1))
+        controls.moved(_Event(460, 300))
+        assert view.heading != 0.0

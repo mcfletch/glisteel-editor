@@ -13,6 +13,11 @@ from OpenGLContext.ui.hudwidgets import HUDGroup, HUDLayer, Readout
 
 __all__ = ['EditorStatus']
 
+#: The most characters the note takes. It sits at one end of the bottom of the
+#: window and the tool read-out at the other, and a message with no bound --
+#: a landscape's description, a path -- runs across and through it.
+NOTE_COLUMNS = 64
+
 
 class EditorStatus(HUDLayer):
     """The editor's read-outs. Call :meth:`show` when something changes."""
@@ -23,7 +28,8 @@ class EditorStatus(HUDLayer):
         self.route = Readout(label='ROUTE')
         self.scale = Readout(label='SCALE')
         self.tool = Readout(anchor='bottom-left', label='TOOL')
-        self.note = Readout(anchor='bottom-right', align='right', value='')
+        self.note = Readout(anchor='bottom-right', align='right', value='',
+                            maximumColumns=NOTE_COLUMNS)
         # One block in the corner: anchored separately they would each take the
         # same corner and be drawn over one another.
         self.corner = HUDGroup(anchor='top-left',
@@ -41,17 +47,28 @@ class EditorStatus(HUDLayer):
 
     def show(self, title: str = '', points: int = 0, length: float = 0.0,
              scale: float = 1.0, tool: str = '',
-             structures: dict[str, int] | None = None) -> None:
+             structures: dict[str, int] | None = None,
+             viewpoint: str = '') -> None:
         """Put the current state on the read-outs.
 
         ``structures`` is what the line has on it, by kind. A length on its own
         says nothing about the third of a route that is a viaduct, and that is
         the expensive third.
+
+        ``viewpoint`` replaces the scale when the window is not a map. A metre
+        is the same number of pixels everywhere on a map and nowhere in a
+        perspective view, so a scale shown there would be a number that is only
+        true down the middle of the screen.
         """
         self.title.value = title
         self.route.value = '%d points, %s%s' % (points, _distance(length),
                                                 _built(structures))
-        self.scale.value = '%s / pixel' % _distance(scale, small=True)
+        if viewpoint:
+            self.scale.label = 'VIEW'
+            self.scale.value = viewpoint
+        else:
+            self.scale.label = 'SCALE'
+            self.scale.value = '%s / pixel' % _distance(scale, small=True)
         self.tool.value = tool
 
 

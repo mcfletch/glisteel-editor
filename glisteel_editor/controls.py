@@ -19,9 +19,10 @@ from collections.abc import Callable
 from typing import Any
 
 import numpy as np
+from OpenGLContext.edit.orbitview import OrbitView
 from OpenGLContext.edit.tools import Pointer, ToolManager
 
-__all__ = ['MapControls']
+__all__ = ['MapControls', 'OrbitControls']
 
 #: How near the pointer must be to a control point to take hold of it, in
 #: pixels. Turned into metres against the map's scale, so it is the same
@@ -30,6 +31,11 @@ GRAB_PIXELS = 12.0
 
 #: What a wheel notch does to the scale.
 ZOOM_STEP = 1.25
+
+#: How many degrees the three-quarter view turns per pixel dragged. A drag
+#: across the window should be most of the way round it, so a designer can look
+#: at the other side of a hill without letting go.
+ORBIT_PER_PIXEL = 0.4
 
 #: The wheel arrives as a pair of buttons, as it does everywhere in the engine.
 WHEEL_UP, WHEEL_DOWN = 4, 3
@@ -83,8 +89,14 @@ class MapControls:
         down = bool(getattr(event, 'state', 0))
         if button in (WHEEL_UP, WHEEL_DOWN):
             if down:
-                self.zoom(ZOOM_STEP if button == WHEEL_DOWN else 1.0 / ZOOM_STEP,
-                          event.getPickPoint())
+                notches = 1 if button == WHEEL_UP else -1
+                # The tool in force is asked first, as it is for every other
+                # input: a brush is sized with the wheel, and a designer
+                # sculpting turns it far more often than they zoom.
+                self._grab_reach()
+                if not self.tools.wheel(self.pointer(event), notches):
+                    self.zoom(ZOOM_STEP if button == WHEEL_DOWN
+                              else 1.0 / ZOOM_STEP, event.getPickPoint())
             return True
         self._grab_reach()
         pointer = self.pointer(event)
@@ -132,6 +144,56 @@ class MapControls:
         """Put a region on screen."""
         self.view.frame(minimum, maximum, self.viewport())
         self._changed()
+
+    def _changed(self) -> None:
+        if self.on_change is not None:
+            self.on_change()
+
+
+class OrbitControls:
+    """The pointer, in the three-quarter view.
+
+    There is nothing to draw on here -- a click is a ray rather than a place --
+    so every button orbits and the wheel moves in and out. Separated from the
+    window for the same reason :class:`MapControls` is: the window is GL and a
+    window, and none of this is either.
+    """
+
+    def __init__(self, view: OrbitView,
+                 viewport: Callable[[], tuple[int, int]],
+                 on_change: Callable[[], None] | None = None) -> None:
+        self.view = view
+        self.viewport = viewport
+        self.on_change = on_change
+        self._from: tuple[float, float] | None = None
+
+    def button(self, event: Any) -> bool:
+        """A button went down or came up. Always taken: this view is the
+        camera's."""
+        button = int(getattr(event, 'button', 0))
+        down = bool(getattr(event, 'state', 0))
+        if button in (WHEEL_UP, WHEEL_DOWN):
+            if down:
+                self.view.dolly(1.0 / ZOOM_STEP if button == WHEEL_UP
+                                else ZOOM_STEP)
+                self._changed()
+            return True
+        self._from = event.getPickPoint() if down else None
+        return True
+
+    def moved(self, event: Any) -> bool:
+        """The pointer moved. True if the camera moved with it."""
+        if self._from is None:
+            return False
+        x, y = event.getPickPoint()
+        # Measured from where the pointer last was rather than from where the
+        # drag began: the camera swings under it, and a fixed origin would make
+        # the turn accelerate away.
+        self.view.orbit((float(x) - self._from[0]) * ORBIT_PER_PIXEL,
+                        (float(y) - self._from[1]) * ORBIT_PER_PIXEL)
+        self._from = (float(x), float(y))
+        self._changed()
+        return True
 
     def _changed(self) -> None:
         if self.on_change is not None:

@@ -114,3 +114,53 @@ class TestWhatTheLineCosts:
         status.show(title='t', points=4, length=1.0, scale=1.0,
                     structures=second)
         assert status.route.value == one
+
+
+class TestAMessageThatIsTooLong:
+    """The note sits at one end of the bottom of the window and the tool
+    read-out at the other; a message with no bound crosses it."""
+
+    def test_a_long_message_is_cut(self) -> None:
+        status = EditorStatus()
+        status.message = 'x' * 400
+        assert len(status.note.text()) < 400
+
+    def test_what_is_left_says_it_was_cut(self) -> None:
+        status = EditorStatus()
+        status.message = 'x' * 400
+        assert status.note.text().endswith('…')
+
+    def test_a_message_that_fits_is_left_alone(self) -> None:
+        status = EditorStatus()
+        status.message = 'Saved monaco.glisteel'
+        assert status.note.text() == 'Saved monaco.glisteel'
+
+    def test_the_message_property_gives_back_what_was_set(self) -> None:
+        """The read-out is cut for drawing; the message itself is not."""
+        status = EditorStatus()
+        status.message = 'x' * 400
+        assert status.message == 'x' * 400
+
+
+class TestWhatTheScaleSaysFromAnAngle:
+    """A metre is the same number of pixels everywhere on a map and nowhere in
+    a perspective view, so the read-out cannot go on claiming one."""
+
+    def test_the_map_says_how_many_metres_a_pixel_is(self) -> None:
+        status = EditorStatus()
+        status.show(scale=2.5)
+        assert status.scale.label == 'SCALE'
+        assert '/ pixel' in status.scale.value
+
+    def test_from_an_angle_it_says_where_the_camera_is(self) -> None:
+        status = EditorStatus()
+        status.show(scale=2.5, viewpoint='1.20 km away, 35 deg up')
+        assert status.scale.label == 'VIEW'
+        assert status.scale.value == '1.20 km away, 35 deg up'
+
+    def test_going_back_to_the_map_says_the_scale_again(self) -> None:
+        status = EditorStatus()
+        status.show(scale=2.5, viewpoint='1.20 km away, 35 deg up')
+        status.show(scale=2.5)
+        assert status.scale.label == 'SCALE'
+        assert '/ pixel' in status.scale.value

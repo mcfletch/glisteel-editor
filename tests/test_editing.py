@@ -307,3 +307,54 @@ class TestTakingItBack:
         editor.end_step()
         assert editor.undo() is True
         assert editor.route.points == before
+
+
+class TestALineDrivenTheOtherWayRound:
+    """The hit tests answer about the line as it was *drawn*.
+
+    ``Route.plan()`` hands the generator the points in the order the road is
+    driven, which is reversed for a circuit turned round. The editor edits the
+    drawn order, so a hit test that answered in plan order would hand back an
+    index that means a different point to everything that acts on it.
+    """
+
+    def _turned(self):
+        route = _route(((0.0, 0.0), (100.0, 0.0), (200.0, 0.0),
+                        (300.0, 0.0), (400.0, 0.0)))
+        route.reversed = True
+        return route
+
+    def test_it_finds_the_point_the_pointer_is_actually_over(self) -> None:
+        editor = RouteEditor(self._turned(), reach=10.0)
+        assert editor.point_at((400.0, 0.0)) == 4
+        assert editor.point_at((100.0, 0.0)) == 1
+
+    def test_dragging_moves_the_point_that_was_grabbed(self) -> None:
+        route = self._turned()
+        editor = RouteEditor(route, reach=10.0)
+        found = editor.point_at((400.0, 0.0))
+        editor.move(found, (400.0, -50.0))
+        assert route.points[4] == (400.0, -50.0)
+        assert route.points[1] == (100.0, 0.0)
+
+    def test_removing_takes_out_the_point_that_was_hit(self) -> None:
+        route = self._turned()
+        editor = RouteEditor(route, reach=10.0)
+        editor.remove(editor.point_at((300.0, 0.0)))
+        assert route.points == [(0.0, 0.0), (100.0, 0.0), (200.0, 0.0),
+                                (400.0, 0.0)]
+
+    def test_a_new_point_goes_in_where_the_line_was_hit(self) -> None:
+        route = self._turned()
+        editor = RouteEditor(route, reach=10.0)
+        editor.insert(editor.segment_at((150.0, 0.0)), (150.0, 5.0))
+        assert route.points[2] == (150.0, 5.0)
+
+    def test_the_tool_agrees_with_the_start_tool_about_which_point(self) -> None:
+        # Two hit tests over one line: they answered differently, which is how
+        # a drag came to move a point the designer was not pointing at.
+        from glisteel_editor.editing import StartTool
+        route = self._turned()
+        editor = RouteEditor(route, reach=10.0)
+        StartTool(editor=editor).on_press(_at(400.0, 0.0))
+        assert route.start == editor.point_at((400.0, 0.0))
