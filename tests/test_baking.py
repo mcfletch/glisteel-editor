@@ -147,3 +147,36 @@ class TestWhereTheLapBegins:
         project.route().reversed = True
         backward = project.world().circuit().points
         assert not np.allclose(forward[:len(backward)], backward[:len(forward)])
+
+
+class TestTheRiversInIt:
+    """A river the editor shows and the baked world does not is a river
+    nobody can drive to."""
+
+    def _watered(self):
+        from OpenGLContext_editor.world.hydrology import Spring
+        project = _drawn()
+        project.landscape.springs.append(Spring(at=(-380.0, 380.0)))
+        return project
+
+    def test_a_track_with_a_river_bakes_one(self, tmp_path) -> None:
+        from OpenGLContext_editor.bake.driver import bake_world
+        project = self._watered()
+        assert project.landscape.channels(), "no river to bake"
+        result = bake_world(project.world().layers(),
+                            str(tmp_path / 'world'), depth=2)
+        assert result.tiles > 1
+
+    def test_the_water_is_in_the_tiles(self, tmp_path) -> None:
+        """Not merely in the layer list: the baker has to have written it."""
+        from OpenGLContext_editor.bake.driver import bake_world
+        project = self._watered()
+        directory = str(tmp_path / 'world')
+        bake_world(project.world().layers(), directory, depth=2)
+        found = []
+        for name in os.listdir(directory):
+            if name.endswith('.glb'):
+                with open(os.path.join(directory, name), 'rb') as handle:
+                    if b'river' in handle.read():
+                        found.append(name)
+        assert found, "no tile carries a river"

@@ -229,3 +229,36 @@ class TestTakingBackASpringThatWasMoved:
         tool.on_drag(_at(400.0, 400.0))
         tool.cancel()
         assert project.landscape.springs == []
+
+
+class TestIntoTheBakedWorld:
+    """A river the map shows and the world does not is a river nobody drives to."""
+
+    def _project(self):
+        project = new_project(extent=2048.0)
+        project.landscape.springs.append(Spring(at=(-800.0, 700.0)))
+        return project
+
+    def test_the_world_is_given_the_rivers(self) -> None:
+        assert len(self._project().world().channels) \
+            == len(self._project().landscape.channels())
+
+    def test_a_world_with_no_springs_is_given_none(self) -> None:
+        assert list(new_project(extent=2048.0).world().channels) == []
+
+    def test_the_layers_a_bake_gets_include_the_water(self) -> None:
+        names = [getattr(layer, 'name', '')
+                 for layer in self._project().world().layers()]
+        assert 'river' in names
+
+    def test_the_bed_is_in_the_ground_as_well(self) -> None:
+        """The channel is an edit on the height source, so every tile that
+        meshes the ground meshes the valley."""
+        project = self._project()
+        channel = project.landscape.channels()[0]
+        middle = channel.points[len(channel.points) // 2]
+        x = np.asarray([middle[0]])
+        z = np.asarray([middle[1]])
+        cut = float(project.world().natural()(x, z)[0])
+        uncut = float(project.landscape.source.height_fn()(x, z)[0])
+        assert cut < uncut

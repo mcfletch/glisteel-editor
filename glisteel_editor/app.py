@@ -133,6 +133,10 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         #: Whether the window is showing the three-quarter view.
         self.perspective = False
         self._dirty_road = False
+        #: When this window opened, so the water's clock starts at zero rather
+        #: than at whenever the machine was switched on.
+        import time as _time
+        self._opened = _time.monotonic()
         #: Whether a stroke of the brush is waiting to be built into the scene.
         self._dirty_land = False
         #: Whether what is on screen is out of date with the project.
@@ -219,6 +223,12 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         settled, and re-cutting the earthworks per mouse-move would make the
         drag a slideshow.
         """
+        # Where the map is looking decides how much ground is meshed and how
+        # finely: the coarse mesh is swapped for a finer one over less ground
+        # as the view comes in, which is what makes a river bed or a sculpted
+        # hill visible at all.
+        self.scene.viewing(self._looking_at(), self._looking_span(),
+                           self.getViewPort())
         content = self.scene.build(
             self.view.metres_per_pixel(self.getViewPort()),
             self.editor.hovered, brush=self._brush())
@@ -244,6 +254,24 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
             return '%s -- holding %g m' % (active.label,
                                            self.editor.snap_interval)
         return str(active.label)
+
+    def _looking_at(self) -> tuple[float, float]:
+        """The ground in the middle of the window, whichever camera is up."""
+        return tuple(self.orbit.centre) if self.perspective \
+            else tuple(self.view.centre)
+
+    def _looking_span(self) -> float:
+        """How many metres of ground the window holds, whichever camera is up.
+
+        In the three-quarter view that is what the lens takes in at the
+        distance it is standing off, which is the same question the map's span
+        answers.
+        """
+        if not self.perspective:
+            return float(self.view.span)
+        import math
+        return 2.0 * float(self.orbit.distance) * math.tan(
+            math.radians(self.orbit.fov) / 2.0)
 
     def _brush(self) -> tuple[tuple[float, float], float] | None:
         """Where a sculpting stroke would land, or None if none would.
@@ -302,6 +330,11 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
 
     def OnIdle(self, *args: Any) -> int:
         """Between frames: put right whatever an edit or a resize left stale."""
+        # Water flows: the surfaces are on the card and this is the one number
+        # they are drawn from, so it costs a uniform a frame.
+        import time as _time
+        if self.scene.advance(_time.monotonic() - self._opened):
+            self.triggerRedraw(1)
         metrics = self.overlayMetrics()
         if metrics is not None and float(metrics.scale) != self._reserved_at:
             self._reserve_room()

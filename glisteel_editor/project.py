@@ -263,6 +263,9 @@ class Project:
             tree_density=self.landscape.tree_density,
             seed=self.landscape.seed,
             source=self.landscape.ground(),
+            # The beds are already in the source; these give the water in them
+            # a surface, so a driven world has the rivers the map shows.
+            channels=self.landscape.channels(),
             road=drivable,
             route=route.plan() if (drivable and route is not None) else None,
             closed=bool(route.closed) if route is not None else True,

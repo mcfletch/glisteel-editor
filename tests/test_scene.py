@@ -447,15 +447,34 @@ class TestTheWater:
         assert _scene().water() is None
 
     def test_a_spring_puts_a_river_on_the_map(self) -> None:
+        """A surface with width to it, not a line standing for one."""
         scene = self._watered()
         assert scene.water() is not None
-        assert _count_lines(scene.water()) > 2
+        points = _positions(scene.water())
+        assert len(points) > 6
 
-    def test_the_river_follows_the_ground(self) -> None:
+    def test_the_river_lies_on_the_ground_the_map_draws(self) -> None:
+        """Not in the bed the baked world will have. The plan view meshes the
+        landscape at a few hundred samples across kilometres and draws straight
+        lines between them, so over a valley it passes above the surface it
+        stands for -- and a river at its true depth is inside the ground."""
         scene = self._watered()
-        points = _positions_of_lines(scene.water())
-        for x, y, z in points[:20]:
-            assert y == pytest.approx(scene.height_at(x, z), abs=3.0)
+        points = _positions(scene.water())[:20]
+        for x, y, z in points:
+            assert y > float(scene.drawn_height(x, z))
+            assert y < float(scene.drawn_height(x, z)) + 10.0
+
+    def test_it_is_drawn_to_be_read(self) -> None:
+        """Map water, not the water a baked world gets: real water is nearly
+        black and borrows its brightness, which over a snowfield at a
+        kilometre's range is a film nobody can see."""
+        scene = self._watered()
+        rivers = [child for child in scene.water().children
+                  if getattr(child, 'appearance', None) is not None]
+        assert rivers
+        material = rivers[0].appearance.material
+        assert material.unlit
+        assert material.baseColor[2] > material.baseColor[0]
 
     def test_the_spring_is_marked_where_it_was_put(self) -> None:
         from OpenGLContext.scenegraph.transform import Transform
@@ -469,7 +488,8 @@ class TestTheWater:
 
     def test_the_whole_scene_carries_it(self) -> None:
         scene = self._watered()
-        assert _count_lines(scene.build(2.0)) > _count_lines(_scene().build(2.0))
+        assert len(_positions(scene.build(2.0))) \
+            > len(_positions(_scene().build(2.0)))
 
     def test_it_is_built_once_and_kept(self) -> None:
         scene = self._watered()
