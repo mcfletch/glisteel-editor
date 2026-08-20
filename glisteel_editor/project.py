@@ -145,16 +145,23 @@ class Route:
         """The points as an ``(N,2)`` array, for the road generator.
 
         In the direction it is driven, so a route turned round is turned round
-        here rather than everywhere downstream. The first point stays first --
-        it is where the line begins on the ground -- and the rest run the other
-        way.
+        here rather than everywhere downstream.
+
+        A **circuit** keeps its first point: a lap begins where it begins, and
+        only the direction round the loop changes, so the rest run the other
+        way. An **open road** does not have that constraint -- turning one round
+        means starting at the far end and driving back -- so the whole line
+        reverses. Keeping its first point first would not be the same road
+        driven the other way; it would be a different shape.
         """
         if not self.points:
             return np.zeros((0, 2), dtype='d')
         plan = np.asarray(self.points, dtype='d').reshape(-1, 2)
-        if self.reversed and len(plan) > 2:
-            plan = np.vstack([plan[:1], plan[1:][::-1]])
-        return plan
+        if not self.reversed:
+            return plan
+        if self.closed:
+            return np.vstack([plan[:1], plan[1:][::-1]])
+        return plan[::-1]
 
     def start_point(self) -> tuple[float, float] | None:
         """Where on the ground a lap begins, or None for a route with no points.

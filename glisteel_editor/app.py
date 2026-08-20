@@ -697,7 +697,7 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         if command is None:
             self._say("glisteel is not installed: pip install glisteel")
             return
-        subprocess.Popen([command, tileset])           # noqa: S603
+        subprocess.Popen([command, tileset])
         self._say("Driving %s" % tileset)
 
     def _quit(self) -> None:
@@ -779,9 +779,24 @@ def _said(metres: float) -> str:
     return '%.0f m' % metres
 
 
-def _at(x: float, y: float, z: float) -> Any:
-    import numpy as np
-    return np.array([float(x), float(y), float(z)], dtype='d')
+def window_size(text: str) -> tuple[int, int]:
+    """``WIDTHxHEIGHT`` as two numbers, or a usage error.
+
+    An ``argparse`` type, so a malformed size is the usage message every other
+    option gets rather than a ``ValueError`` out of the middle of ``main``.
+    """
+    width, _, height = str(text).lower().partition('x')
+    try:
+        found = (int(width), int(height))
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            '%r is not a window size; write one as WIDTHxHEIGHT, '
+            'for example 1280x800' % (text,)) from None
+    if found[0] < 1 or found[1] < 1:
+        raise argparse.ArgumentTypeError(
+            '%r is not a window size: both sides have to be at least one '
+            'pixel' % (text,))
+    return found
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -807,8 +822,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument('--datum', type=float, default=0.0,
                         help="how many metres above the waterline the middle "
                              "of an imported landscape sits")
-    parser.add_argument('--size', default='1280x800',
-                        help="window size, WIDTHxHEIGHT")
+    parser.add_argument('--size', default=(1280, 800), type=window_size,
+                        metavar='WIDTHxHEIGHT',
+                        help="window size (default: 1280x800)")
     return parser
 
 
@@ -822,10 +838,13 @@ def main(argv: list[str] | None = None) -> int:   # pragma: no cover - needs a w
                               base=terrain_base(options))
         if options.project:
             project.path = options.project
+    # Kept apart: ``project`` was the path argparse produced and then the
+    # Project built from it, so what that attribute held depended on how far
+    # through startup whoever read it was.
     options.project_path = options.project
     options.project = project
     options.baked = None
-    width, height = (int(part) for part in options.size.lower().split('x'))
+    width, height = options.size
 
     class Editor(EditorContext):
         config = options

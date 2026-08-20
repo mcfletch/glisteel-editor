@@ -16,7 +16,7 @@ tool palette draws them.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, NamedTuple
 
 import numpy as np
 from OpenGLContext.edit.maptools import PanTool
@@ -26,7 +26,22 @@ from OpenGLContext.edit.tools import Pointer, ToolManager, ToolMode
 
 from glisteel_editor.project import Route
 
-__all__ = ['RouteEditor', 'RouteTool', 'StartTool', 'editor_tools']
+__all__ = ['RouteEditor', 'RouteTool', 'RouteState', 'StartTool',
+           'editor_tools']
+
+
+class RouteState(NamedTuple):
+    """A route as it was, for putting back.
+
+    Named rather than a bare tuple: what undo restores is four different things
+    about a line, and reading them back out by position is how the third and
+    fourth come to be swapped by somebody adding a fifth.
+    """
+
+    points: list[tuple[float, float]]
+    closed: bool
+    start: int
+    reversed: bool
 
 #: How near the pointer has to be to take hold of something, in metres. Scaled
 #: by the map's zoom by whoever owns the editor, so it stays a comfortable
@@ -79,8 +94,8 @@ class RouteEditor:
         self.snap_reach = float(snap_reach)
         #: The point the pointer is over, for whoever is drawing the map.
         self.hovered: int | None = None
-        self._past: list[tuple[list[tuple[float, float]], bool, int, bool]] = []
-        self._future: list[tuple[list[tuple[float, float]], bool, int, bool]] = []
+        self._past: list[RouteState] = []
+        self._future: list[RouteState] = []
         #: Depth of the gesture in progress: changes inside one are one step.
         self._grouped = 0
 
@@ -265,17 +280,17 @@ class RouteEditor:
         self._restore(self._future.pop())
         return True
 
-    def _state(self) -> tuple[list[tuple[float, float]], bool, int, bool]:
-        return (list(self.route.points), bool(self.route.closed),
-                int(self.route.start), bool(self.route.reversed))
+    def _state(self) -> RouteState:
+        return RouteState(points=list(self.route.points),
+                          closed=bool(self.route.closed),
+                          start=int(self.route.start),
+                          reversed=bool(self.route.reversed))
 
-    def _restore(self,
-                 state: tuple[list[tuple[float, float]], bool, int, bool]
-                 ) -> None:
-        self.route.points[:] = state[0]
-        self.route.closed = state[1]
-        self.route.start = state[2]
-        self.route.reversed = state[3]
+    def _restore(self, state: RouteState) -> None:
+        self.route.points[:] = state.points
+        self.route.closed = state.closed
+        self.route.start = state.start
+        self.route.reversed = state.reversed
         if self.hovered is not None and self.hovered >= len(self.route.points):
             self.hovered = None
         self._changed()

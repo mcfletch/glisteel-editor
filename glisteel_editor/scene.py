@@ -175,6 +175,9 @@ class MapScene:
         self._structures: Shape | None | _NotBuilt = NOT_BUILT
         self._contours: Group | None = None
         self._water: Group | None = None
+        #: The scale the water's markers were last drawn for: they are a
+        #: screen size, so a zoom rebuilds them.
+        self._water_scale: float | None = None
         #: The heights the ground mesh is built from, for putting things on it.
         self._grid: Any = None
         #: Which ground is meshed and how finely; None until told where to look.
@@ -606,7 +609,7 @@ class MapScene:
         return step / length if length > 1e-9 else np.array([1.0, 0.0])
 
     # -- the water ---------------------------------------------------------
-    def water(self) -> Group | None:
+    def water(self, metres_per_pixel: float = 1.0) -> Group | None:
         """The rivers and the springs they come out of, or None where none are.
 
         The river is drawn as the line the water takes rather than as a
@@ -615,13 +618,16 @@ class MapScene:
         """
         if not self.project.landscape.springs:
             return None
+        if self._water is None or self._water_scale != float(metres_per_pixel):
+            self._water_scale = float(metres_per_pixel)
+            self._water = None
         if self._water is None:
             children: list[Any] = []
             for channel in self.project.landscape.channels():
                 shape = self._river_shape(channel)
                 if shape is not None:
                     children.append(shape)
-            children.extend(self._spring_marks())
+            children.extend(self._spring_marks(metres_per_pixel))
             self._water = Group(children=children)
         return self._water
 
@@ -780,9 +786,8 @@ class MapScene:
         structures = self.structures()
         if structures is not None:
             children.append(structures)
-        water = self.water()
+        water = self.water(metres_per_pixel)
         if water is not None:
-            water.children = list(water.children)
             children.append(water)
         start = self.start_mark(metres_per_pixel)
         if start is not None:
