@@ -6,36 +6,46 @@ here: the project, the road generator, the earthworks, the baker, and the
 tileset a game reads the circuit back out of.
 """
 import json
-import math
 import os
 
 import numpy as np
 import pytest
+import support
 
-from glisteel_editor.project import Landscape, Project, Route
+#: Every test here bakes, and a bake is seconds rather than milliseconds. They
+#: are marked so that a working loop can be ``-m "not slow"`` and a full run is
+#: still the default.
+pytestmark = pytest.mark.slow
 
 
-def _drawn(points=16, radius=420.0):
-    """A circuit as a designer would have clicked it out."""
-    plan = [(radius * math.cos(2 * math.pi * i / points),
-             radius * 0.7 * math.sin(2 * math.pi * i / points))
-            for i in range(points)]
-    return Project(name='Drawn', landscape=Landscape(extent=1024.0, seed=11,
-                                                     resolution=17),
-                   routes=[Route(name='circuit', closed=True, points=plan)])
+def _drawn():
+    """A circuit as a designer would have clicked it out.
+
+    Small and coarse -- a kilometre across, sampled at seventeen points a side
+    -- because what is being asserted is that a bake produces a drivable world,
+    not how finely it can produce one.
+    """
+    return support.project(support.ring_points(radius=420.0, count=16,
+                                               flatten=0.7),
+                           name='Drawn', extent=1024.0, resolution=17)
+
+
+def _bake(project, directory, depth=2, **named):
+    from OpenGLContext_editor.bake.driver import bake_world
+    result = bake_world(project.world().layers(), directory, depth=depth,
+                        **named)
+    with open(result.tileset) as handle:
+        return result, json.load(handle)
 
 
 @pytest.fixture(scope='module')
 def baked(tmp_path_factory):
     """One bake, shared: it is seconds of work and nothing here changes it."""
-    from OpenGLContext_editor.bake.driver import bake_world
     from OpenGLContext_editor.world.procedural import CREDITS
-    directory = str(tmp_path_factory.mktemp('world'))
     project = _drawn()
-    result = bake_world(project.world().layers(), directory, depth=2,
-                        credits=list(CREDITS))
-    with open(result.tileset) as handle:
-        return project, result, json.load(handle)
+    result, document = _bake(project, str(tmp_path_factory.mktemp('world')),
+                             credits=list(CREDITS))
+    return project, result, document
 
 
 class TestWhatComesOut:
@@ -76,7 +86,6 @@ class TestTheCircuitTheGameGetsBack:
         assert road['length'] == pytest.approx(drawn.length(), rel=0.15)
 
     def test_it_stays_inside_the_landscape(self, baked) -> None:
-        import numpy as np
         project, _result, document = baked
         line = np.asarray(document['extras']['roads'][0]['centreline'], 'd')
         half = project.landscape.extent / 2.0
@@ -101,7 +110,6 @@ class TestTheGroundUnderIt:
         world = project.world()
         conformed = world.height_fn()
         x, z = project.routes[0].points[0]
-        import numpy as np
         on_road = float(np.asarray(conformed(np.array([x]), np.array([z])))[0])
         natural = float(np.asarray(terrain_height(np.array([x]),
                                                   np.array([z])))[0])
@@ -118,10 +126,6 @@ def _uris(entry, out=None):
     return out
 
 
-if __name__ == '__main__':
-    raise SystemExit(pytest.main([__file__, '-v']))
-
-
 class TestWhereTheLapBegins:
     """The start/finish is a designer's decision, and the game reads it back."""
 
@@ -132,13 +136,9 @@ class TestWhereTheLapBegins:
         assert 0.0 <= road['start'] <= road['length']
 
     def test_a_chosen_start_travels_into_the_world(self, tmp_path) -> None:
-        from OpenGLContext_editor.bake.driver import bake_world
         project = _drawn()
         project.route().start = 5
-        directory = str(tmp_path / 'world')
-        result = bake_world(project.world().layers(), directory, depth=1)
-        with open(result.tileset) as handle:
-            document = json.load(handle)
+        _result, document = _bake(project, str(tmp_path / 'world'), depth=1)
         assert document['extras']['roads'][0]['start'] > 0.0
 
     def test_a_circuit_turned_round_is_a_different_line(self, tmp_path) -> None:
@@ -149,34 +149,37 @@ class TestWhereTheLapBegins:
         assert not np.allclose(forward[:len(backward)], backward[:len(forward)])
 
 
+@pytest.fixture(scope='module')
+def watered(tmp_path_factory):
+    """One bake of a track with a river across it, and the project it came
+    from -- the same bake answers both questions asked of it below."""
+    from OpenGLContext_editor.world.hydrology import Spring
+    project = _drawn()
+    project.landscape.springs.append(Spring(at=(-380.0, 380.0)))
+    result, _document = _bake(project, str(tmp_path_factory.mktemp('rivers')))
+    return project, result
+
+
 class TestTheRiversInIt:
     """A river the editor shows and the baked world does not is a river
     nobody can drive to."""
 
-    def _watered(self):
-        from OpenGLContext_editor.world.hydrology import Spring
-        project = _drawn()
-        project.landscape.springs.append(Spring(at=(-380.0, 380.0)))
-        return project
-
-    def test_a_track_with_a_river_bakes_one(self, tmp_path) -> None:
-        from OpenGLContext_editor.bake.driver import bake_world
-        project = self._watered()
+    def test_a_track_with_a_river_bakes_one(self, watered) -> None:
+        project, result = watered
         assert project.landscape.channels(), "no river to bake"
-        result = bake_world(project.world().layers(),
-                            str(tmp_path / 'world'), depth=2)
         assert result.tiles > 1
 
-    def test_the_water_is_in_the_tiles(self, tmp_path) -> None:
+    def test_the_water_is_in_the_tiles(self, watered) -> None:
         """Not merely in the layer list: the baker has to have written it."""
-        from OpenGLContext_editor.bake.driver import bake_world
-        project = self._watered()
-        directory = str(tmp_path / 'world')
-        bake_world(project.world().layers(), directory, depth=2)
+        _project, result = watered
         found = []
-        for name in os.listdir(directory):
+        for name in os.listdir(result.directory):
             if name.endswith('.glb'):
-                with open(os.path.join(directory, name), 'rb') as handle:
+                with open(os.path.join(result.directory, name), 'rb') as handle:
                     if b'river' in handle.read():
                         found.append(name)
         assert found, "no tile carries a river"
+
+
+if __name__ == '__main__':
+    raise SystemExit(pytest.main([__file__, '-v']))

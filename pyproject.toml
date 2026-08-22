@@ -102,3 +102,10 @@ follow_untyped_imports = false
 testpaths = ["tests", "glisteel_editor"]
 addopts = "-ra --doctest-modules"
 timeout = 300
+# Baking a world is seconds of work rather than milliseconds, and the tests that
+# do it are most of what the suite costs. They are marked rather than removed --
+# a bake is the one thing the editor is for -- so a working loop can be
+# `-m "not slow"` and a full run is still the default.
+markers = [
+    "slow: bakes a world; seconds rather than milliseconds",
+]

@@ -68,6 +68,18 @@ the legs have room for — with the legs left where you drew them. That is what
 makes a **switchback** work: draw a hairpin to climb a slope and you get a
 hairpin, not a sweep across the hillside.
 
+**Corners are banked.** The road leans into each of them, by as much as that
+corner needs to hold the speed the track is laid out for and no more, so a
+gentle sweeper leans hardly at all and a tight one leans to the limit. It leans
+up to one in ten — the steepest an ordinary road is built to, not an oval's
+banking — and the change is spread over some seventy metres of the approach, so
+you arrive at a corner already leaning rather than rolling once you are in it.
+
+What banking buys you is **tighter corners at the same speed**: 270 m of radius
+instead of 315 m, which is a quarter less hillside per corner and a line you can
+draw through country a flat road has to sweep across. The plan view draws the
+lean, so what you see on the corner you drew is what you will drive.
+
 ### Holding a height
 
 Press `h` and a point you place or drag is pulled onto the iso-height its
@@ -296,6 +308,21 @@ The suite runs headless and without a window: a project is data, an edit is
 arithmetic on a list of points, and a click is a position and a button.
 `tests/test_baking.py` draws a circuit, bakes it, and reads the track back out
 of the tileset through the game's own reader.
+
+Baking is seconds of work rather than milliseconds, and those tests are most of
+what the suite costs, so they carry a `slow` marker. A working loop skips them;
+a full run does not:
+
+```bash
+pytest -m "not slow"        # while editing
+pytest                      # before committing
+```
+
+What the tests hand the editor -- a pointer over a point of ground, a route, a
+project on the standard landscape -- comes from `tests/support.py`, so the way
+those are made up is written down once. A test says what it is about at the call
+site (`support.project(support.ring_points(radius=420.0, count=16))`) and
+nothing else.
 
 ## Licence
 

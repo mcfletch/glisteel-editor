@@ -5,16 +5,11 @@ bed it cuts is arithmetic on the landscape's edit stack.
 """
 import numpy as np
 import pytest
-from OpenGLContext.edit.tools import Pointer
 from OpenGLContext_editor.world.hydrology import Spring
+from support import pointer_at as _at, pointer_over_nothing
 
 from glisteel_editor.project import Project, new_project
 from glisteel_editor.water import WaterEditor, WaterTool
-
-
-def _at(x, z, button=0):
-    return Pointer(x=0.0, y=0.0, world=np.array([x, 0.0, z], dtype='d'),
-                   button=button)
 
 
 def _rig(**named):
@@ -66,7 +61,7 @@ class TestPlacingASpring:
 
     def test_it_leaves_a_click_on_nothing_alone(self) -> None:
         editor, project, _changed = _rig()
-        assert not WaterTool(editor=editor).on_press(Pointer(world=None))
+        assert not WaterTool(editor=editor).on_press(pointer_over_nothing())
         assert project.landscape.springs == []
 
 

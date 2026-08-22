@@ -6,10 +6,10 @@ the points there.
 """
 import numpy as np
 import pytest
-from OpenGLContext.edit.tools import Pointer
+import support
+from support import pointer_at as _at
 
 from glisteel_editor.editing import RouteEditor, RouteTool
-from glisteel_editor.project import Route
 
 
 def _ramp(x, z):
@@ -18,13 +18,8 @@ def _ramp(x, z):
 
 
 def _editor(points=(), **named):
-    route = Route(name='circuit', closed=False, points=[tuple(p) for p in points])
     named.setdefault('height_fn', _ramp)
-    return RouteEditor(route, **named)
-
-
-def _at(x, z):
-    return Pointer(x=0.0, y=0.0, world=np.array([x, 0.0, z], dtype='d'))
+    return RouteEditor(support.route(points, closed=False), **named)
 
 
 class TestPlacingWithSnapOn:
@@ -76,7 +71,7 @@ class TestPlacingWithSnapOn:
         assert abs(editor.route.points[0][0] - 137.0) <= 20.0
 
     def test_an_editor_with_no_height_field_leaves_points_alone(self) -> None:
-        editor = RouteEditor(Route(name='circuit'), snap=True)
+        editor = RouteEditor(support.route(closed=False), snap=True)
         editor.append(np.array([137.0, 0.0, 40.0]))
         assert editor.route.points[0] == pytest.approx((137.0, 40.0))
 

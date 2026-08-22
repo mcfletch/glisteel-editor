@@ -8,6 +8,7 @@ a line is too short to be a road worked out again every time.
 """
 import numpy as np
 import pytest
+import support
 
 from glisteel_editor.project import Project, new_project
 from glisteel_editor.scene import LIFT, MapScene
@@ -15,9 +16,7 @@ from glisteel_editor.scene import LIFT, MapScene
 
 def _project(points=None):
     if points is None:
-        angle = np.linspace(0.0, 2.0 * np.pi, 24, endpoint=False)
-        points = [(float(600.0 * np.cos(a)), float(600.0 * np.sin(a)))
-                  for a in angle]
+        points = support.ring_points(radius=600.0, count=24)
     return new_project(extent=2048.0, points=points)
 
 

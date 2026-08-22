@@ -8,24 +8,19 @@ and a new one appears *there*, in order, rather than at the end.
 """
 import numpy as np
 import pytest
-from OpenGLContext.edit.tools import Pointer, ToolManager
+import support
+from OpenGLContext.edit.tools import ToolManager
+from support import pointer_at as _at
 
 from glisteel_editor.editing import RouteEditor, RouteTool
-from glisteel_editor.project import Route
 
 
 def _route(points=((0.0, 0.0), (100.0, 0.0), (100.0, 100.0), (0.0, 100.0))):
-    return Route(name='circuit', closed=True, points=[tuple(p) for p in points])
+    return support.route(points)
 
 
 def _editor(route=None, reach=10.0):
     return RouteEditor(route or _route(), reach=reach)
-
-
-def _at(x, z, button=0, modifiers=(0, 0, 0)):
-    """A pointer over a world point, as the map view reports one."""
-    return Pointer(x=0.0, y=0.0, world=np.array([x, 0.0, z]),
-                   button=button, modifiers=modifiers)
 
 
 class TestFindingWhatIsUnderThePointer:
@@ -158,7 +153,7 @@ class TestDrawingWithThePointer:
 
     def test_a_click_over_the_sky_is_not_a_point(self) -> None:
         tools, editor = self._tool()
-        nowhere = Pointer(x=0.0, y=0.0, world=None)
+        nowhere = support.pointer_over_nothing()
         assert tools.press(nowhere) is False
         assert len(editor.route.points) == 4
 

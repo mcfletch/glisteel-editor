@@ -6,6 +6,7 @@ where they are, and that they change when the project does.
 """
 import numpy as np
 import pytest
+import support
 
 from glisteel_editor.project import Landscape, Project, Route
 from glisteel_editor.scene import MapScene
@@ -13,9 +14,7 @@ from glisteel_editor.scene import MapScene
 
 def _project(points=((-400.0, -300.0), (400.0, -300.0), (400.0, 300.0),
                      (-400.0, 300.0))):
-    return Project(name='Test', landscape=Landscape(extent=2048.0, seed=11),
-                   routes=[Route(name='circuit', closed=True,
-                                 points=[tuple(p) for p in points])])
+    return support.project(points)
 
 
 def _scene(project=None, **named):

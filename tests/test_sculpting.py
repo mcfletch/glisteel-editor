@@ -5,7 +5,7 @@ one gesture is one undoable change to the project's landscape.
 """
 import numpy as np
 import pytest
-from OpenGLContext.edit.tools import Pointer
+from support import pointer_at as _at, pointer_over_nothing
 
 from glisteel_editor.project import new_project
 from glisteel_editor.sculpting import LandEditor, SculptTool
@@ -16,11 +16,6 @@ def _editor(**named):
     changed = []
     return LandEditor(project.landscape, on_change=lambda: changed.append(1),
                       **named), project, changed
-
-
-def _at(x, z, button=0, modifiers=(0, 0, 0)):
-    return Pointer(x=0.0, y=0.0, world=np.array([x, 0.0, z], dtype='d'),
-                   button=button, modifiers=modifiers)
 
 
 class TestOneStroke:
@@ -141,7 +136,7 @@ class TestWhatItLeavesAlone:
     def test_it_does_not_take_a_click_over_nothing(self) -> None:
         editor, project, _changed = _editor()
         tool = SculptTool(editor=editor)
-        assert not tool.on_press(Pointer(world=None))
+        assert not tool.on_press(pointer_over_nothing())
         assert project.landscape.source.edits == []
 
     def test_it_is_called_something_a_designer_recognises(self) -> None:
@@ -185,7 +180,7 @@ class TestKnowingWhereTheBrushIs:
         editor, _project, _changed = _editor()
         tool = SculptTool(editor=editor)
         tool.on_move(_at(30.0, -40.0))
-        assert not tool.on_move(Pointer(world=None))
+        assert not tool.on_move(pointer_over_nothing())
         assert editor.at == (30.0, -40.0)
 
     def test_a_drag_takes_the_brush_with_it(self) -> None:

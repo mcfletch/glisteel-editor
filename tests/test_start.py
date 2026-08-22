@@ -5,17 +5,12 @@ number in the project file.
 """
 import numpy as np
 import pytest
-from OpenGLContext.edit.tools import Pointer
+from support import pointer_at as _at, pointer_over_nothing
 
 from glisteel_editor.editing import RouteEditor, StartTool
 from glisteel_editor.project import Project, Route, new_project
 
 SQUARE = [(-300.0, -300.0), (300.0, -300.0), (300.0, 300.0), (-300.0, 300.0)]
-
-
-def _at(x, z, button=0):
-    return Pointer(x=0.0, y=0.0, world=np.array([x, 0.0, z], dtype='d'),
-                   button=button)
 
 
 def _rig(points=SQUARE):
@@ -46,7 +41,7 @@ class TestWhereALapBegins:
 
     def test_a_click_over_nothing_is_left_alone(self) -> None:
         editor, _project = _rig()
-        assert not StartTool(editor=editor).on_press(Pointer(world=None))
+        assert not StartTool(editor=editor).on_press(pointer_over_nothing())
 
     def test_a_route_with_no_points_takes_nothing(self) -> None:
         editor, _project = _rig(points=[])
