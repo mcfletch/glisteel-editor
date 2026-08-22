@@ -68,6 +68,28 @@ the legs have room for — with the legs left where you drew them. That is what
 makes a **switchback** work: draw a hairpin to climb a slope and you get a
 hairpin, not a sweep across the hillside.
 
+**The corners you draw are the corners you get.** The generator invents varied
+corners for a circuit it draws itself; a line *you* drew is held to the one
+design radius, because your corners are already your decision. What your line
+does get is everything the road works out from it and from the land: how fast
+each stretch is laid out for, where it may climb harder than the rest, which
+stretches keep the ground's own bumps and which are ironed flat, where the trees
+are cut back so you can see round a bend, and where it is built wide enough to
+get past somebody. Draw a tight corner and it stays tight — and the road slows,
+roughens and opens out around it on its own.
+
+**Corners are banked.** The road leans into each of them, by as much as that
+corner needs to hold the speed the track is laid out for and no more, so a
+gentle sweeper leans hardly at all and a tight one leans to the limit. It leans
+up to one in ten — the steepest an ordinary road is built to, not an oval's
+banking — and the change is spread over some seventy metres of the approach, so
+you arrive at a corner already leaning rather than rolling once you are in it.
+
+What banking buys you is **tighter corners at the same speed**: 270 m of radius
+instead of 315 m, which is a quarter less hillside per corner and a line you can
+draw through country a flat road has to sweep across. The plan view draws the
+lean, so what you see on the corner you drew is what you will drive.
+
 ### Holding a height
 
 Press `h` and a point you place or drag is pulled onto the iso-height its
