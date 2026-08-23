@@ -34,7 +34,11 @@ from OpenGLContext.scenegraph.basenodes import Box, Coordinate, IndexedLineSet
 from OpenGLContext.scenegraph.group import Group
 from OpenGLContext.scenegraph.pbrmaterial import PBRMaterial
 from OpenGLContext.scenegraph.pbrmesh import PBRMesh
-from OpenGLContext.scenegraph.road import banked_sections, road_mesh
+from OpenGLContext.scenegraph.road import (
+    banked_sections,
+    road_mesh,
+    widened_sections,
+)
 from OpenGLContext.scenegraph.shape import Shape
 from OpenGLContext.scenegraph.transform import Transform
 
@@ -508,9 +512,10 @@ class MapScene:
             # corners they drew are going to be to drive.
             stations = np.linspace(0.0, path.length, len(line))
             bank = path.bank_at(stations)
-            sections = banked_sections(
-                np.tile(path.profile.section(), (len(line), 1, 1)), bank,
-                path.profile)
+            sections = widened_sections(
+                np.tile(path.profile.section(), (len(line), 1, 1)),
+                path.widening_at(stations), path.profile)
+            sections = banked_sections(sections, bank, path.profile)
             mesh = road_mesh(line, path.profile, material=self._tarmac,
                              sections=sections, bank=bank)
             self._road = Shape(geometry=mesh,
