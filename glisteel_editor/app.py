@@ -31,7 +31,6 @@ import os
 import sys
 from typing import Any
 
-os.environ.setdefault('OPENGLCONTEXT_PROFILE', 'core')
 os.environ.setdefault('OPENGLCONTEXT_BACKEND', 'glfw')
 os.environ.setdefault('OPENGLCONTEXT_RENDERER', 'pbr')
 

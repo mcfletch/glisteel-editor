@@ -27,7 +27,7 @@ classifiers = [
 # generates the road and bakes the world. The *game* is not a dependency: an
 # editor that cannot find one still edits, and says so when asked to drive.
 dependencies = [
-    "OpenGLContext[glfw]>=3.0.0a1",
+    "OpenGLContext[glfw]>=3.0.0a3",
     "OpenGLContext-editor",
     "numpy>=2.0",
 ]
