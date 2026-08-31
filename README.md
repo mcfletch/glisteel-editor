@@ -245,10 +245,22 @@ generator works out from the ground under it — smoothed, held to a maximum
 grade, rounded off for the speed it is meant to be driven at, and lifted onto a
 causeway where it would otherwise run below the waterline.
 
+## Samples
+
+`samples/ashdown.glisteel` is a worked example of the file format above: a
+closed circuit of 21 points on the shipped landscape, which the generator
+carries over two bridges and through one tunnel once the line has settled onto
+the ground.
+
+```bash
+glisteel-editor samples/ashdown.glisteel
+```
+
 ## Baking
 
-`File → Bake a world` writes a 3D Tiles world beside the project file, in
-`<project>-world/`. The circuit goes into the tileset's `extras` along with it,
+`glisteel-bake --output <directory>` bakes the shipped circuit world from a
+shell. From inside the editor, `File → Bake a world` writes a 3D Tiles world
+beside the project file, in `<project>-world/`. The circuit goes into the tileset's `extras` along with it,
 which is how the game finds the track in what it streams: the starting grid, the
 lap timing and the autopilot all read it from there.
 

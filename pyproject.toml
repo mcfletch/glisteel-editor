@@ -42,6 +42,9 @@ Repository = "https://github.com/mcfletch/glisteel-editor"
 
 [project.scripts]
 glisteel-editor = "glisteel_editor.app:main"
+# Bake the shipped circuit world from a shell, the way File -> Bake a world
+# does from the menu.
+glisteel-bake = "glisteel_editor.bake:main"
 
 [tool.setuptools.dynamic]
 version = { attr = "glisteel_editor.__version__" }
