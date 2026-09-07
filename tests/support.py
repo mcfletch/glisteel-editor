@@ -7,7 +7,8 @@ the tests is about.
 """
 from __future__ import annotations
 
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 import numpy as np
 from OpenGLContext.edit.tools import Pointer

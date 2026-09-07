@@ -6,7 +6,8 @@ bed it cuts is arithmetic on the landscape's edit stack.
 import numpy as np
 import pytest
 from OpenGLContext_editor.world.hydrology import Spring
-from support import pointer_at as _at, pointer_over_nothing
+from support import pointer_at as _at
+from support import pointer_over_nothing
 
 from glisteel_editor.project import Project, new_project
 from glisteel_editor.water import WaterEditor, WaterTool

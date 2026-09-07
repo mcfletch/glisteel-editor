@@ -6,7 +6,6 @@ designer would describe: click on empty ground and a point appears at the end;
 click on a point and drag it and it moves; click on the line between two points
 and a new one appears *there*, in order, rather than at the end.
 """
-import numpy as np
 import pytest
 import support
 from OpenGLContext.edit.tools import ToolManager

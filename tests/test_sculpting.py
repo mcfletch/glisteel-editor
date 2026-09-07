@@ -5,7 +5,8 @@ one gesture is one undoable change to the project's landscape.
 """
 import numpy as np
 import pytest
-from support import pointer_at as _at, pointer_over_nothing
+from support import pointer_at as _at
+from support import pointer_over_nothing
 
 from glisteel_editor.project import new_project
 from glisteel_editor.sculpting import LandEditor, SculptTool

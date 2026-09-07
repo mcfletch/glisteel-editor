@@ -10,4 +10,4 @@ is the *project* -- a designer's decisions and the file they live in -- and the
 application that puts the rest on screen.
 """
 
-__version__ = '0.1.0'
+__version__ = '1.0.0a1'

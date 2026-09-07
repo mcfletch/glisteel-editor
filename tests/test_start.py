@@ -5,7 +5,8 @@ number in the project file.
 """
 import numpy as np
 import pytest
-from support import pointer_at as _at, pointer_over_nothing
+from support import pointer_at as _at
+from support import pointer_over_nothing
 
 from glisteel_editor.editing import RouteEditor, StartTool
 from glisteel_editor.project import Project, Route, new_project

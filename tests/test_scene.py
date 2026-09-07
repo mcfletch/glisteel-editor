@@ -194,7 +194,7 @@ class TestWhereTheRoadIsCarried:
     def _scene(self, radius=520.0, points=14):
         import math
 
-        from glisteel_editor.project import Landscape, Project, Route
+        from glisteel_editor.project import Landscape
         from glisteel_editor.scene import MapScene
         plan = [(radius * math.cos(2 * math.pi * i / points),
                  radius * 0.75 * math.sin(2 * math.pi * i / points))
@@ -211,7 +211,7 @@ class TestWhereTheRoadIsCarried:
         assert found is not None
 
     def test_a_line_too_short_to_be_a_road_has_none(self) -> None:
-        from glisteel_editor.project import Landscape, Project, Route
+        from glisteel_editor.project import Landscape
         from glisteel_editor.scene import MapScene
         project = Project(name='x', landscape=Landscape(extent=1024.0),
                           routes=[Route(name='c', points=[(0.0, 0.0)])])
@@ -246,7 +246,7 @@ class TestWhereTheRoadIsCarried:
         assert set(counts) <= {'bridge', 'tunnel', 'causeway'}
 
     def test_a_flat_route_reports_none(self) -> None:
-        from glisteel_editor.project import Landscape, Project, Route
+        from glisteel_editor.project import Landscape
         from glisteel_editor.scene import MapScene
         project = Project(name='x', landscape=Landscape(extent=1024.0),
                           routes=[Route(name='c', points=[(0.0, 0.0)])])
