@@ -29,13 +29,17 @@ classifiers = [
 dependencies = [
     "OpenGLContext[glfw]>=3.0.0a3",
     "OpenGLContext-editor",
+    # The game, required rather than offered as an extra: driving what has just
+    # been baked is what an editor is for, and `pip install glisteel-editor`
+    # should give something that can. The arrow runs this way and only this way
+    # -- the game does not depend back on the editor -- which is the same shape
+    # as openglcontext-marble-editor and openglcontext-marble-demo.
+    "glisteel",
     "numpy>=2.0",
 ]
 
 [project.optional-dependencies]
-# Driving what has been baked, from inside the editor.
-drive = ["glisteel"]
-dev = ["glisteel-editor[drive]", "pytest", "pytest-cov", "pytest-timeout", "ruff", "mypy"]
+dev = ["pytest", "pytest-cov", "pytest-timeout", "ruff", "mypy"]
 
 [project.urls]
 Repository = "https://github.com/mcfletch/glisteel-editor"
