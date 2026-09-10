@@ -24,6 +24,7 @@ being read.
 """
 from __future__ import annotations
 
+import enum
 from collections.abc import Sequence
 from typing import Any
 
@@ -48,20 +49,26 @@ from glisteel_editor.project import Project
 __all__ = ['MapScene']
 
 
-class _NotBuilt:
+class _NotBuilt(enum.Enum):
     """Stands for a cache that has not been filled yet.
 
     ``None`` cannot: it is also a perfectly good *answer* -- a flat circuit
     needs no bridge and no bore -- and a cache that cannot tell the two apart
     works the answer out again on every redraw, which for a structure means
     settling the whole alignment.
+
+    An enum with one member rather than a plain class, because that is the
+    sentinel a checker narrows: ``cached is not NOT_BUILT`` then leaves the
+    answer's own type, which is what the accessor returns.
     """
+
+    token = 0
 
     def __repr__(self) -> str:                   # pragma: no cover - a marker
         return 'NOT_BUILT'
 
 
-NOT_BUILT = _NotBuilt()
+NOT_BUILT = _NotBuilt.token
 
 #: Ground samples across the whole landscape when nobody has said where the
 #: view is looking. The detail normally follows the zoom -- see

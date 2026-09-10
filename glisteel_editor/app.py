@@ -37,6 +37,7 @@ os.environ.setdefault('OPENGLCONTEXT_RENDERER', 'pbr')
 from OpenGLContext import testingcontext  # noqa: E402
 from OpenGLContext.edit.mapview import MapView, MapViewPlatform  # noqa: E402
 from OpenGLContext.edit.orbitview import OrbitView, OrbitViewPlatform  # noqa: E402
+from OpenGLContext.move.viewplatform import ViewPlatform  # noqa: E402
 from OpenGLContext.scenegraph.scenegraph import SceneGraph  # noqa: E402
 from OpenGLContext.ui import dialogs  # noqa: E402
 from OpenGLContext.ui.menu import MenuBar, MenuItem  # noqa: E402
@@ -87,6 +88,17 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
     """The editor's window: a map, a menu bar, and the tools in between."""
 
     config: Any = None
+
+    #: Which camera is driving: the map's, or the perspective one the "Look
+    #: at it" view puts up. Declared as what they have in common, because both
+    #: are set here and a checker otherwise takes the first as the only kind.
+    platform: ViewPlatform
+
+    #: The node the scene was last built into, so the next build knows which
+    #: of the window's children to replace. Held rather than marked on the
+    #: node: what the editor drew is the editor's own business, and a
+    #: scenegraph node is a described thing whose fields are its contents.
+    _content: Any = None
 
     def OnInit(self) -> None:
         self.project = self.config.project
@@ -232,8 +244,8 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
             self.view.metres_per_pixel(self.getViewPort()),
             self.editor.hovered, brush=self._brush())
         keep = [child for child in self.sg.children
-                if not getattr(child, '_editorContent', False)]
-        content._editorContent = True
+                if child is not self._content]
+        self._content = content
         self.sg.children = keep + [content]
         self.triggerRedraw(1)
 
@@ -256,8 +268,8 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
 
     def _looking_at(self) -> tuple[float, float]:
         """The ground in the middle of the window, whichever camera is up."""
-        return tuple(self.orbit.centre) if self.perspective \
-            else tuple(self.view.centre)
+        centre = self.orbit.centre if self.perspective else self.view.centre
+        return (float(centre[0]), float(centre[1]))
 
     def _looking_span(self) -> float:
         """How many metres of ground the window holds, whichever camera is up.
@@ -430,7 +442,8 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
                              self.getViewPort())
         else:
             # Where the camera was looking is where the map goes back to.
-            self.view.centre = tuple(self.orbit.centre)
+            self.view.centre = (float(self.orbit.centre[0]),
+                                float(self.orbit.centre[1]))
         self.platform = self.orbitPlatform if self.perspective else \
             self.mapPlatform
         self.platform.setViewport(*self.getViewPort())
@@ -602,11 +615,11 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         if not would_lose_work(self.project):
             go()
             return
-        dialogs.confirm(
+        self.pushOverlay(dialogs.confirm(
             "Replace without saving?",
             "%s has changes that are not in a file." % self.project.title(),
             on_answer=lambda yes: go() if yes else None,
-            danger=True, context=self)
+            danger=True))
 
     def _adopt(self) -> None:
         """Point the editor at a different project."""
@@ -701,11 +714,11 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
 
     def _quit(self) -> None:
         if would_lose_work(self.project):
-            dialogs.confirm(
+            self.pushOverlay(dialogs.confirm(
                 "Leave without saving?",
                 "%s has changes that are not in a file." % self.project.title(),
                 on_answer=lambda yes: self._leave() if yes else None,
-                danger=True, context=self)
+                danger=True))
             return
         self._leave()
 
