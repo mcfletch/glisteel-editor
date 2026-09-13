@@ -20,6 +20,7 @@ takes any layers at all.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import shutil
 import subprocess
@@ -46,8 +47,15 @@ from .recipe import (
     world_for,
 )
 
-__all__ = ['BadRecipe', 'Settings', 'build_parser', 'describe', 'main',
-           'read_recipe', 'resolve', 'world_for']
+__all__ = ['ArtDiffers', 'BadRecipe', 'SHARED_ART', 'Settings', 'build_parser',
+           'describe', 'main', 'read_recipe', 'resolve', 'split_art',
+           'world_for']
+
+#: What a bake writes that says nothing about which circuit is being driven, and
+#: so is the same in every track baked from the same art. Measured across the
+#: four launch tracks: byte-identical in all of them. ``signs/`` is deliberately
+#: not here -- the signs carry each circuit's own posted limits.
+SHARED_ART = ('trees', 'gantry')
 
 #: Where a bake goes when the command line does not say.
 DEFAULT_OUTPUT = os.path.join('.', 'baked-world')
@@ -60,6 +68,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument('--output', '-o', default=DEFAULT_OUTPUT,
                         help='directory to write the tileset and its tiles into '
                              '(default: %(default)s)')
+    parser.add_argument('--art-pack', default=None, metavar='DIR',
+                        help='move the art every track shares (%s) into this '
+                             'directory instead of leaving it in the track, so '
+                             'a release carries one copy rather than one per '
+                             'track. Both unpack into the same place, so no '
+                             'path changes.' % (', '.join(SHARED_ART),))
     parser.add_argument('--recipe', default=None, metavar='FILE',
                         help='a track written down: a TOML file naming any of '
                              'the settings below. What is also given on the '
@@ -101,6 +115,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                         progress=progress)
     manifest = describe(world, options, result, name=settings.name)
     write_manifest(options.output, manifest)
+    if options.art_pack:
+        moved = split_art(options.output, options.art_pack)
+        if not options.quiet:
+            print('  shared art: %s' % (', '.join(moved) if moved
+                                        else 'already in %s' % options.art_pack))
     if options.quiet:
         print(result.tileset)
     else:
@@ -111,6 +130,62 @@ def main(argv: Sequence[str] | None = None) -> int:
     if options.view:
         return _view(result.tileset)
     return 0
+
+
+class ArtDiffers(ValueError):
+    """A track's shared art is not the art already in the pack.
+
+    The split rests on the art being the same art. Keeping the first copy
+    silently would put one track's art under another track's tiles the day that
+    stopped being true, and nothing would say so.
+    """
+
+
+def split_art(track: str, pack: str) -> list[str]:
+    """Move what ``track`` shares with every other track into ``pack``.
+
+    Returns the directory names moved, which is empty for a bake that wrote no
+    shared art (``--forest tiles`` grows the trees into the tiles) and for a
+    second track whose art is already in the pack.
+
+    Nothing about a path changes: a track pack and its art pack unpack into the
+    same directory, so ``trees/...`` in a tile resolves exactly as it does in a
+    bake that never split.
+    """
+    moved = []
+    for name in SHARED_ART:
+        here = os.path.join(track, name)
+        if not os.path.isdir(here):
+            continue
+        there = os.path.join(pack, name)
+        if os.path.isdir(there):
+            if not _same_tree(here, there):
+                raise ArtDiffers(
+                    "%s is not the %s already in %s. The art packs share is "
+                    "meant to be one set of files; two that differ would put "
+                    "one track's art under another's tiles."
+                    % (here, name, pack))
+            shutil.rmtree(here)
+            continue
+        os.makedirs(pack, exist_ok=True)
+        shutil.move(here, there)
+        moved.append(name)
+    return moved
+
+
+def _same_tree(one: str, two: str) -> bool:
+    """Whether two directories hold the same files with the same bytes."""
+    named = {}
+    for where in (one, two):
+        found = {}
+        for root, _, files in os.walk(where):
+            for name in files:
+                path = os.path.join(root, name)
+                with open(path, 'rb') as handle:
+                    found[os.path.relpath(path, where)] = hashlib.sha256(
+                        handle.read()).hexdigest()
+        named[where] = found
+    return named[one] == named[two]
 
 
 def describe(world: ProceduralWorld, options: Any, result: Any,

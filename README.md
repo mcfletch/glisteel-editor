@@ -306,6 +306,28 @@ settings nobody chose with nothing saying so.
 | `posted` | the speed the circuit is signed at, in km/h; 0 leaves it unposted |
 | `seed`, `extent`, `depth` | which world, how big, and how finely it is cut up |
 
+### One copy of the art, not four
+
+`trees/` and `gantry/` are the same bytes in every track baked from the same
+art — 25.5 MB of bark, branch and impostor maps that say nothing about which
+circuit is being driven. `--art-pack` writes them once:
+
+```bash
+for track in tracks/*.toml; do
+    glisteel-bake --recipe "$track" --output "release/$(basename $track .toml)" \
+                  --art-pack release/_art
+done
+```
+
+The first track moves its art into the pack and the rest find it already
+there — and are refused if what they wrote is *not* the same art, since the
+whole split rests on that. A track pack and its art pack unpack into the same
+directory on a player's disk, so `trees/...` in a tile resolves exactly as it
+does in a bake that never split, and nothing about a path changes.
+
+Four tracks that way are 113.7 MB rather than 190 MB. `signs/` stays in the
+track: the signs carry each circuit's own posted limits.
+
 Four recipes ship in `tracks/`, and they are the set
 [glisteel's track packs](https://github.com/mcfletch/glisteel/blob/main/plans/TRACK-PACKS.md)
 are built from: a balanced circuit, a flooded one, a hill climb and a banked
