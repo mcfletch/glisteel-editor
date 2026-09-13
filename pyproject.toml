@@ -36,6 +36,9 @@ dependencies = [
     # as openglcontext-marble-editor and openglcontext-marble-demo.
     "glisteel",
     "numpy>=2.0",
+    # Reading a track recipe. tomllib is the standard library's from 3.11, and
+    # this is the same reader under its earlier name for the versions below it.
+    "tomli>=1.1.0 ; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]

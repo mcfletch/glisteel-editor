@@ -1,0 +1,12 @@
+# Beacon -- a hill climb. Point to point rather than a lap, so it has a start
+# and a finish; the relief is high and the extent small, which is what makes a
+# climb rather than a circuit that happens to be hilly. Sparse trees, because
+# what is being looked at is the drop.
+name = "Beacon"
+seed = 41
+extent = 2048
+depth = 3
+closed = false
+relief = 2.2
+tree_density = 0.004
+variety = 0.9

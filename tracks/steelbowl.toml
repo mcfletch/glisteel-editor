@@ -1,0 +1,13 @@
+# Steelbowl -- a banked oval. The corners lean as far as the road will let them,
+# the ground is nearly flat and the circuit is one figure repeated, which is
+# what an oval is. No viaducts or bores: there is nothing to carry the road over
+# or through, and building them would only interrupt the bowl.
+name = "Steelbowl"
+seed = 7
+extent = 1024
+depth = 2
+relief = 0.25
+maximum_bank = 0.12
+variety = 0.0
+structures = false
+posted = 0

@@ -268,6 +268,51 @@ lap timing and the autopilot all read it from there.
 glisteel mytrack-world/tileset.json
 ```
 
+### Recipes
+
+`ProceduralWorld` takes about twenty parameters, and naming them on a command
+line every time makes a released track something nobody can rebuild. A
+**recipe** is a TOML file naming any of them:
+
+```toml
+# tracks/tidewater.toml
+name = "Tidewater"
+seed = 23
+extent = 4096
+water_level = 48.0      # the valleys flood; the circuit runs on causeways
+maximum_bank = 0.02     # flat corners, so the causeways read as causeways
+```
+
+```bash
+glisteel-bake --recipe tracks/tidewater.toml --output /tmp/tidewater
+glisteel-bake --recipe tracks/tidewater.toml --depth 2 -o /tmp/draft   # quicker
+```
+
+Anything also given on the command line outranks the recipe, so one recipe
+bakes at a draft depth or another seed without being edited. A key no setting is
+called is refused rather than ignored, since the alternative is a track baked to
+settings nobody chose with nothing saying so.
+
+`glisteel-bake --help` lists every setting. The ones worth knowing:
+
+| Setting | What it does |
+|---|---|
+| `water_level` | where the water sits, in metres. Raise it and the valleys flood, which puts the circuit on causeways between islands |
+| `relief` | how tall the hills are: 0 is flat, higher is alpine |
+| `closed` | a lap, or `--open` for a point-to-point run with a start and a finish |
+| `maximum_bank` | how far the corners lean. 0 is flat; the ceiling makes an oval |
+| `variety` | how unlike each other the corners and straights are, 0 to 1 |
+| `structures` | `--no-structures` leaves the road on the land, with no viaducts or bores |
+| `posted` | the speed the circuit is signed at, in km/h; 0 leaves it unposted |
+| `seed`, `extent`, `depth` | which world, how big, and how finely it is cut up |
+
+Four recipes ship in `tracks/`, and they are the set
+[glisteel's track packs](https://github.com/mcfletch/glisteel/blob/main/plans/TRACK-PACKS.md)
+are built from: a balanced circuit, a flooded one, a hill climb and a banked
+oval. Three of the world's inputs are deliberately not settings, each needing a
+file rather than a value: a drawn centreline, river beds, and a height source
+such as a real DEM.
+
 ## What is where
 
 The editor is deliberately thin. The landscape, the road generation and the

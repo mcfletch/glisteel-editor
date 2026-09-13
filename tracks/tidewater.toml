@@ -1,0 +1,11 @@
+# Tidewater -- the same hill country with the sea in it. The water is raised
+# until the valleys flood, so the circuit runs on causeways between islands and
+# the bridges get long; the corners are laid nearly flat, which keeps the
+# causeways reading as causeways rather than as banked curves.
+name = "Tidewater"
+seed = 23
+extent = 4096
+depth = 4
+water_level = 48.0
+maximum_bank = 0.02
+variety = 0.7

@@ -37,6 +37,18 @@ from OpenGLContext_editor.bake.manifest import (
 )
 from OpenGLContext_editor.world.procedural import ProceduralWorld
 
+from .recipe import (
+    BadRecipe,
+    Settings,
+    add_settings,
+    read_recipe,
+    resolve,
+    world_for,
+)
+
+__all__ = ['BadRecipe', 'Settings', 'build_parser', 'describe', 'main',
+           'read_recipe', 'resolve', 'world_for']
+
 #: Where a bake goes when the command line does not say.
 DEFAULT_OUTPUT = os.path.join('.', 'baked-world')
 
@@ -48,32 +60,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument('--output', '-o', default=DEFAULT_OUTPUT,
                         help='directory to write the tileset and its tiles into '
                              '(default: %(default)s)')
-    parser.add_argument('--extent', type=float, default=4096.0,
-                        help='the world is this many metres across (default: '
-                             '%(default)s)')
-    parser.add_argument('--depth', type=int, default=4,
-                        help='how many times the tree subdivides; each level is '
-                             'four times the tiles and twice the ground detail '
-                             '(default: %(default)s)')
-    parser.add_argument('--resolution', type=int, default=33,
-                        help='ground samples across each tile (default: %(default)s)')
-    parser.add_argument('--tree-density', type=float, default=None,
-                        help='trees per square metre (default: the world\'s own)')
-    parser.add_argument('--max-instances', type=int, default=None,
-                        help='cap on instances written into any one tile')
-    parser.add_argument('--ground', choices=('field', 'tiles'), default='field',
-                        help="how the landscape is carried: one splat terrain "
-                             "beside the tileset, or meshed into the tiles")
-    parser.add_argument('--forest', choices=('field', 'tiles'), default='field',
-                        help="how the trees are carried: one table beside the "
-                             "tileset, or instanced into the tiles")
+    parser.add_argument('--recipe', default=None, metavar='FILE',
+                        help='a track written down: a TOML file naming any of '
+                             'the settings below. What is also given on the '
+                             'command line outranks it.')
     parser.add_argument('--name', default=None,
                         help='what this world is called, for anything offering '
                              'a choice of them (default: the output '
                              "directory's own name)")
-    parser.add_argument('--seed', type=int, default=11,
-                        help='the world is the same every bake for a given seed '
-                             '(default: %(default)s)')
+    add_settings(parser)
     parser.add_argument('--force', action='store_true',
                         help='overwrite the output directory if it already holds '
                              'a baked world')
@@ -86,24 +81,25 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     options = build_parser().parse_args(argv)
+    try:
+        settings = resolve(options)
+    except BadRecipe as error:
+        print('glisteel-bake: %s' % (error,), file=sys.stderr)
+        return 2
     _prepare_output(options.output, force=options.force)
 
-    world = ProceduralWorld(extent=options.extent, resolution=options.resolution,
-                            seed=options.seed, ground=options.ground,
-                            forest=options.forest)
-    if options.tree_density is not None:
-        world.tree_density = options.tree_density
+    world = world_for(settings)
 
     progress = None if options.quiet else _printing_progress()
     # No `bounds`: the region to partition is whatever the layers cover, height
     # included. The world's own `bounds()` is a footprint, and a region with no
     # vertical extent would prune every cell the ground does not pass exactly
     # through.
-    result = bake_world(world.layers(), options.output, depth=options.depth,
+    result = bake_world(world.layers(), options.output, depth=settings.depth,
                         credits=world.credits(),
-                        max_instances=options.max_instances,
+                        max_instances=settings.max_instances,
                         progress=progress)
-    manifest = describe(world, options, result)
+    manifest = describe(world, options, result, name=settings.name)
     write_manifest(options.output, manifest)
     if options.quiet:
         print(result.tileset)
@@ -117,19 +113,26 @@ def main(argv: Sequence[str] | None = None) -> int:
     return 0
 
 
-def describe(world: ProceduralWorld, options: Any, result: Any) -> WorldManifest:
+def describe(world: ProceduralWorld, options: Any, result: Any,
+             name: str | None = None) -> WorldManifest:
     """What this bake produced, as the manifest written beside it.
+
+    Read off the **world** rather than off the command line: a setting nobody
+    gave is the world's own, and the manifest is a description of what was
+    built. ``closed`` in particular is a fact about the circuit -- a chooser
+    shows a point-to-point run differently from a lap -- and taking it from
+    anywhere else would let the two disagree.
 
     The name defaults to the output directory's own, tidied by
     :func:`~OpenGLContext_editor.bake.manifest.world_name`.
     """
     road = world.circuit()
     return WorldManifest(
-        name=options.name or world_name(options.output),
+        name=name or options.name or world_name(options.output),
         tileset=os.path.basename(result.tileset),
-        seed=options.seed, extent=float(options.extent),
+        seed=world.seed, extent=float(world.extent),
         road_length=float(road.length), structures=carried(road),
-        closed=True, baked=date.today().isoformat())
+        closed=bool(world.closed), baked=date.today().isoformat())
 
 
 

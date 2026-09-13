@@ -1,0 +1,12 @@
+# Ashdown -- the home circuit, and the world every measurement in
+# plans/TRACK-PACKS.md was taken from: 7.2 km of road carrying 895 m of
+# viaduct, 289 m of bore and 252 m of causeway.
+#
+# Everything here is the world's own default, written down rather than left
+# implicit, because this is the track the others are read against.
+name = "Ashdown"
+seed = 11
+extent = 4096
+depth = 4
+ground = "field"
+forest = "field"
