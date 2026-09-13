@@ -27,7 +27,7 @@ classifiers = [
 # generates the road and bakes the world. The *game* is not a dependency: an
 # editor that cannot find one still edits, and says so when asked to drive.
 dependencies = [
-    "OpenGLContext[glfw]>=3.0.0a4",
+    "OpenGLContext[glfw]>=3.0.0a5",
     "OpenGLContext-editor",
     # The game, required rather than offered as an extra: driving what has just
     # been baked is what an editor is for, and `pip install glisteel-editor`
