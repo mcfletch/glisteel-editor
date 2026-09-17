@@ -2,10 +2,16 @@
 # until the valleys flood, so the circuit runs on causeways between islands and
 # the bridges get long; the corners are laid nearly flat, which keeps the
 # causeways reading as causeways rather than as banked curves.
+#
+# The level is chosen for the *shape of the lap*, which is what a driver meets:
+# at 20 m a third of the circuit is still on the land, a sixth of it is causeway
+# -- more than at any other level on this seed -- and the rest is deck and one
+# bore. Higher and the islands go under: at 48 m the drive is 76% viaduct over
+# open water, which is a crossing rather than a circuit.
 name = "Tidewater"
 seed = 23
 extent = 4096
 depth = 4
-water_level = 48.0
+water_level = 20.0
 maximum_bank = 0.02
 variety = 0.7

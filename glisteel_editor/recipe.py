@@ -11,7 +11,7 @@ tag that produced it, rather than from a command somebody remembers typing::
     # tracks/tidewater.toml
     name = "Tidewater"
     seed = 23
-    water_level = 48.0      # the valleys flood; the circuit runs on causeways
+    water_level = 20.0      # the valleys flood; the circuit runs on causeways
     maximum_bank = 0.02     # flat corners, so the causeways read as causeways
 
 Validation is strict: a key no setting is called is refused rather than ignored,
@@ -102,8 +102,10 @@ WORLD_SETTINGS: tuple[Setting, ...] = (
     Setting('field_resolution', int, "samples across the field's height grid"),
     Setting('control_size', int, 'pixels across the splat control map'),
     Setting('water_level', float,
-            'where the water sits, in metres. Raise it to flood the valleys, '
-            'which puts the circuit on causeways between islands'),
+            'where the water sits, in metres. Raise it to flood the valleys: '
+            'the circuit goes onto causeways between islands, the forest and '
+            'the boulders start above it, and the shore is painted round the '
+            'new coast'),
     Setting('relief', float, 'how tall the hills are, against the shipped '
             "landscape's own; 0 is flat, higher is alpine"),
     Setting('maximum_bank', float, 'how far the corners lean, as a fraction. '

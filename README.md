@@ -279,7 +279,7 @@ line every time makes a released track something nobody can rebuild. A
 name = "Tidewater"
 seed = 23
 extent = 4096
-water_level = 48.0      # the valleys flood; the circuit runs on causeways
+water_level = 20.0      # the valleys flood; the circuit runs on causeways
 maximum_bank = 0.02     # flat corners, so the causeways read as causeways
 ```
 
@@ -297,7 +297,7 @@ settings nobody chose with nothing saying so.
 
 | Setting | What it does |
 |---|---|
-| `water_level` | where the water sits, in metres. Raise it and the valleys flood, which puts the circuit on causeways between islands |
+| `water_level` | where the water sits, in metres. Raise it and the valleys flood, and the whole world moves with it: the circuit is held clear of the new sea and carried over the drowned ground it crosses on causeways, the forest and the boulders start above it, and the shore is painted round the new coast |
 | `relief` | how tall the hills are: 0 is flat, higher is alpine |
 | `closed` | a lap, or `--open` for a point-to-point run with a start and a finish |
 | `maximum_bank` | how far the corners lean. 0 is flat; the ceiling makes an oval |
