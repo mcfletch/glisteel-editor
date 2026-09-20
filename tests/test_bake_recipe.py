@@ -128,6 +128,13 @@ class TestTheWorldItBuilds:
         assert world.water_level == 60.0
         assert world.extent == 1024.0
 
+    def test_the_world_knows_how_deep_the_tree_will_go(self) -> None:
+        """A tiled world's ground is only as fine as its deepest tile, and
+        what is measured against a cell -- a portal's face, the ground cleared
+        in front of one -- is measured against that."""
+        world = bake.world_for(settings(['--depth', '6', '--extent', '1024']))
+        assert world.depth == 6
+
     def test_an_open_circuit_is_built_open(self) -> None:
         world = bake.world_for(settings(['--open', '--extent', '1024']))
         assert world.closed is False

@@ -211,9 +211,14 @@ def resolve(options: Any) -> Settings:
 
 
 def world_for(settings: Settings) -> Any:
-    """The world these settings describe."""
+    """The world these settings describe.
+
+    The tree's ``depth`` is a bake setting and the world is told it as well: a
+    tiled world's ground is only as fine as its deepest tile, and what a portal
+    has to cover is measured against a cell of it.
+    """
     from OpenGLContext_editor.world.procedural import ProceduralWorld
-    return ProceduralWorld(**settings.world)
+    return ProceduralWorld(depth=settings.depth, **settings.world)
 
 
 def _read_toml(path: str) -> dict[str, Any]:

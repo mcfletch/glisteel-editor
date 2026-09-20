@@ -80,10 +80,20 @@ class TestBakingFromTheCommandLine:
         assert not (tmp_path / 'world' / 'trees.npz').exists()
 
     def test_a_tiled_ground_puts_the_landscape_in_the_tiles(self, tmp_path) -> None:
+        """And says so. The landscape is written beside the tileset either
+        way -- it is what the tiles are blended and lit from, and the surface
+        the world is collided against -- so which of the two is *drawn* is the
+        thing the record has to state."""
         import json
         _run(tmp_path, '--quiet', '--ground', 'tiles')
         document = json.load(open(tmp_path / 'world' / 'tileset.json'))
-        assert 'terrain' not in document['extras']
+        assert document['extras']['terrain']['drawn'] == 'tiles'
+
+    def test_and_a_field_ground_says_it_draws_itself(self, tmp_path) -> None:
+        import json
+        _run(tmp_path, '--quiet')
+        document = json.load(open(tmp_path / 'world' / 'tileset.json'))
+        assert document['extras']['terrain']['drawn'] == 'field'
 
     def test_the_trees_it_used_are_credited(self, tmp_path) -> None:
         """They are CC-BY, and the attribution travels with the world."""
