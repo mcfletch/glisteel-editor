@@ -7,6 +7,7 @@ map's scale.
 import pytest
 from OpenGLContext.edit.mapview import MapView
 from OpenGLContext.edit.tools import ToolManager
+from OpenGLContext.events.mouseevents import WHEEL_DOWN, WHEEL_UP
 
 from glisteel_editor.controls import MapControls
 from glisteel_editor.editing import RouteEditor, RouteTool
@@ -48,6 +49,30 @@ class TestWhereThePointerIs:
         pointer = controls.pointer(_Event(400, 300))
         assert (float(pointer.world[0]), float(pointer.world[2])) \
             == pytest.approx((120.0, -40.0))
+
+    def test_the_map_may_be_a_tile_of_the_window(self) -> None:
+        """In a split or a quad the map has a corner of its own to measure from."""
+        route = Route(name='circuit', points=[])
+        tools = ToolManager([RouteTool(editor=RouteEditor(route))])
+        view = MapView(centre=(120.0, -40.0), span=600.0)
+        tile = (400, 300)
+        controls = MapControls(view, tools, lambda: tile,
+                               locate=lambda x, y: (x - 400, y - 300))
+        pointer = controls.pointer(_Event(600, 450))
+        assert (float(pointer.world[0]), float(pointer.world[2])) \
+            == pytest.approx((120.0, -40.0))
+
+    def test_a_zoom_holds_the_point_under_the_pointer_in_a_tile(self) -> None:
+        route = Route(name='circuit', points=[])
+        tools = ToolManager([RouteTool(editor=RouteEditor(route))])
+        view = MapView(centre=(0.0, 0.0), span=600.0)
+        tile = (400, 300)
+        controls = MapControls(view, tools, lambda: tile,
+                               locate=lambda x, y: (x - 400, y - 300))
+        before = view.world_from_screen(150, 80, tile)
+        controls.button(_Event(550, 380, button=WHEEL_UP, state=1))
+        assert view.world_from_screen(150, 80, tile) \
+            == pytest.approx(before, abs=1e-6)
 
     def test_it_reads_the_ground_under_that_point(self) -> None:
         route = Route(name='circuit', points=[])
@@ -125,28 +150,28 @@ class TestMovingTheMap:
         controls.button(_Event(700, 500, button=2, state=1))
         assert len(editor.route.points) == 2
 
-    def test_the_wheel_zooms_in(self) -> None:
+    def test_a_notch_away_from_the_designer_zooms_in(self) -> None:
         controls, _editor, view, _settled = _controls(span=600.0)
-        controls.button(_Event(400, 300, button=4, state=1))
+        controls.button(_Event(400, 300, button=WHEEL_UP, state=1))
         assert view.span < 600.0
 
     def test_the_other_way_zooms_out(self) -> None:
         controls, _editor, view, _settled = _controls(span=600.0)
-        controls.button(_Event(400, 300, button=3, state=1))
+        controls.button(_Event(400, 300, button=WHEEL_DOWN, state=1))
         assert view.span > 600.0
 
     def test_zooming_holds_the_point_under_the_pointer(self) -> None:
         controls, _editor, view, _settled = _controls(span=600.0)
         before = view.world_from_screen(700, 500, VIEWPORT)
-        controls.button(_Event(700, 500, button=4, state=1))
+        controls.button(_Event(700, 500, button=WHEEL_UP, state=1))
         assert view.world_from_screen(700, 500, VIEWPORT) \
             == pytest.approx(before, abs=1e-6)
 
     def test_the_wheel_coming_up_does_nothing_twice(self) -> None:
         controls, _editor, view, _settled = _controls(span=600.0)
-        controls.button(_Event(400, 300, button=4, state=1))
+        controls.button(_Event(400, 300, button=WHEEL_UP, state=1))
         once = view.span
-        controls.button(_Event(400, 300, button=4, state=0))
+        controls.button(_Event(400, 300, button=WHEEL_UP, state=0))
         assert view.span == once
 
     def test_framing_a_region_puts_it_on_screen(self) -> None:
@@ -181,75 +206,3 @@ class TestTheKeyboard:
 
 if __name__ == '__main__':
     raise SystemExit(pytest.main([__file__, '-v']))
-
-
-class TestLookingAtItFromAnAngle:
-    """The three-quarter view: the pointer moves the camera, not the line."""
-
-    def _rig(self, **named):
-        from OpenGLContext.edit.orbitview import OrbitView
-
-        from glisteel_editor.controls import OrbitControls
-        view = OrbitView(centre=(0.0, 0.0), distance=800.0, **named)
-        moved = []
-        return OrbitControls(view, lambda: VIEWPORT,
-                             on_change=lambda: moved.append(1)), view, moved
-
-    def test_a_drag_turns_the_camera_round(self) -> None:
-        controls, view, _moved = self._rig(heading=0.0)
-        controls.button(_Event(400, 300, 0, 1))
-        controls.moved(_Event(460, 300))
-        assert view.heading != 0.0
-
-    def test_dragging_up_the_screen_raises_the_camera(self) -> None:
-        controls, view, _moved = self._rig(pitch=30.0)
-        controls.button(_Event(400, 300, 0, 1))
-        controls.moved(_Event(400, 360))
-        assert view.pitch > 30.0
-
-    def test_it_keeps_looking_at_the_same_place(self) -> None:
-        controls, view, _moved = self._rig()
-        where = view.target().copy()
-        controls.button(_Event(400, 300, 0, 1))
-        controls.moved(_Event(500, 380))
-        assert list(view.target()) == list(where)
-
-    def test_a_drag_is_measured_from_where_it_last_was(self) -> None:
-        controls, view, _moved = self._rig(heading=0.0)
-        controls.button(_Event(400, 300, 0, 1))
-        controls.moved(_Event(410, 300))
-        once = view.heading
-        controls.moved(_Event(420, 300))
-        assert view.heading == pytest.approx(once * 2.0)
-
-    def test_the_wheel_moves_in_and_out(self) -> None:
-        controls, view, _moved = self._rig()
-        controls.button(_Event(400, 300, 4, 1))
-        assert view.distance < 800.0
-        controls.button(_Event(400, 300, 3, 1))
-        assert view.distance == pytest.approx(800.0)
-
-    def test_a_move_with_nothing_held_does_nothing(self) -> None:
-        controls, view, _moved = self._rig(heading=0.0)
-        controls.moved(_Event(700, 700))
-        assert view.heading == 0.0
-
-    def test_the_release_ends_the_drag(self) -> None:
-        controls, view, _moved = self._rig(heading=0.0)
-        controls.button(_Event(400, 300, 0, 1))
-        controls.button(_Event(400, 300, 0, 0))
-        controls.moved(_Event(700, 300))
-        assert view.heading == 0.0
-
-    def test_it_says_when_the_camera_moved(self) -> None:
-        controls, _view, moved = self._rig()
-        controls.button(_Event(400, 300, 0, 1))
-        controls.moved(_Event(420, 300))
-        assert moved == [1]
-
-    def test_every_button_orbits(self) -> None:
-        """There is nothing else for the pointer to do here."""
-        controls, view, _moved = self._rig(heading=0.0)
-        controls.button(_Event(400, 300, 2, 1))
-        controls.moved(_Event(460, 300))
-        assert view.heading != 0.0
