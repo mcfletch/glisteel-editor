@@ -60,7 +60,11 @@ from glisteel_editor.scene import (  # noqa: E402
 )
 from glisteel_editor.sculpting import LandEditor  # noqa: E402
 from glisteel_editor.status import EditorStatus  # noqa: E402
-from glisteel_editor.views import LAYOUTS, EditorViews  # noqa: E402
+from glisteel_editor.views import (  # noqa: E402
+    LAYOUTS,
+    editor_views,
+    frame_landscape,
+)
 from glisteel_editor.water import WaterEditor  # noqa: E402
 
 log = logging.getLogger(__name__)
@@ -131,7 +135,11 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         # The views the window can show, and the arrangements of them. The
         # cameras are the two above, so a switch of arrangement changes where a
         # designer is looking from rather than where they are.
-        self.views = EditorViews(self.view, self.orbit)
+        self.views = editor_views(self.view, self.orbit)
+        #: The two views the editor asks about by name: the map is where the
+        #: tools draw, and the angled view is what the land is judged in.
+        self.mapView = self.views.named('map')
+        self.angledView = self.views.named('angled')
         self.views.show(getattr(self.config, 'views', 'map') or 'map')
         self.viewLayout = self.views.layout
         self.views.arrange(*self.getViewPort())
@@ -139,10 +147,10 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         # designer switches to is looking at the ground rather than at
         # whatever is around the origin.
         low, high = self.project.bounds()
-        self.views.frame(low, high, self.scene.relief())
-        self.platform = (self.views.map.camera
-                         if self.views.showing(self.views.map)
-                         else self.views.angled.camera)
+        frame_landscape(self.views, low, high, self.scene.relief())
+        self.platform = (self.mapView.camera
+                         if self.views.showing(self.mapView)
+                         else self.angledView.camera)
         self.editor = RouteEditor(
             self._route(), on_change=self._route_changed,
             height_fn=lambda x, z: self.scene.world().natural()(x, z),
@@ -151,14 +159,14 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
                                on_change=self._land_changed)
         self.water = WaterEditor(self.project.landscape,
                                  on_change=self._land_changed)
-        self.tools = editor_tools(self.editor, self.view, self.views.map_size,
+        self.tools = editor_tools(self.editor, self.view, self._map_size,
                                   on_change=self._map_moved,
                                   on_tool=self._tool_changed, land=self.land,
                                   water=self.water)
         self.controls = MapControls(
-            self.view, self.tools, self.views.map_size, editor=self.editor,
+            self.view, self.tools, self._map_size, editor=self.editor,
             height_at=lambda x, z: self.scene.height_at(x, z),
-            locate=self.views.map_local,
+            locate=self._map_local,
             on_change=self._map_moved, on_settle=self._settle)
         self._dirty_road = False
         #: When this window opened, so the water's clock starts at zero rather
@@ -196,6 +204,14 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         self.addEventHandler('keypress', name='p', function=self._toggle_view)
         self.addEventHandler('keypress', name='v', function=self._next_layout)
         self.addEventHandler('keypress', name=' ', function=self._maximise)
+
+    def _map_size(self) -> tuple[int, int]:
+        """How many pixels across and down the map is drawn."""
+        return self.views.size(self.mapView)
+
+    def _map_local(self, x: float, y: float) -> tuple[float, float]:
+        """A window pixel in the map's own pixels, measured from its corner."""
+        return self.views.local(self.mapView, x, y)
 
     # -- what the project holds -------------------------------------------
     def _route(self) -> Any:
@@ -258,9 +274,9 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         # as the view comes in, which is what makes a river bed or a sculpted
         # hill visible at all.
         self.scene.viewing(self._looking_at(), self._looking_span(),
-                           self.views.map_size())
+                           self._map_size())
         content = self.scene.build(
-            self.view.metres_per_pixel(self.views.map_size()),
+            self.view.metres_per_pixel(self._map_size()),
             self.editor.hovered, brush=self._brush())
         keep = [child for child in self.sg.children
                 if child is not self._content]
@@ -285,7 +301,7 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         wherever a map is on screen; the camera's distance is what there is to
         say instead when none is.
         """
-        if self.views.showing(self.views.map):
+        if self.views.showing(self.mapView):
             return ''
         return '%s away, %.0f deg up' % (
             _said(self.orbit.distance), self.orbit.pitch)
@@ -335,7 +351,7 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
             title=self.project.title(),
             points=len(route.points) if route else 0,
             length=route.length() if route else 0.0,
-            scale=self.view.metres_per_pixel(self.views.map_size()),
+            scale=self.view.metres_per_pixel(self._map_size()),
             tool=self._tool_label(),
             structures=self.scene.structure_counts(),
             viewpoint=self._viewpoint())
@@ -409,7 +425,7 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
             if event.name == '<ctrl-y>':
                 self._redo()
                 return True
-            if not self.views.showing(self.views.map):
+            if not self.views.showing(self.mapView):
                 # The tools draw on the map; with no map on screen the pointer
                 # is the camera's and there is nothing for a key to reach.
                 return False
@@ -418,7 +434,7 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
             # Which view the pointer is in decides what it means: the map is
             # the tools', and the elevations and the angled view are their
             # cameras'.
-            if self.views.view_for(event) is not self.views.map:
+            if self.views.view_for(event) is not self.mapView:
                 if self.views.handle(event):
                     self._map_moved()
                     return True
@@ -447,7 +463,7 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
 
     def _frame_all(self, event: Any = None) -> None:
         minimum, maximum = self.project.bounds()
-        self.views.frame(minimum, maximum, self.scene.relief())
+        frame_landscape(self.views, minimum, maximum, self.scene.relief())
         self._map_moved()
 
     # -- which views are up -------------------------------------------------
@@ -477,9 +493,9 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         """
         if name == self.views.mode:
             return
-        showing = self.views.showing(self.views.angled)
+        showing = self.views.showing(self.angledView)
         self.views.show(name)
-        if not showing and self.views.showing(self.views.angled):
+        if not showing and self.views.showing(self.angledView):
             self.orbit.look_at(self.view.centre,
                                self.scene.height_at(*self.view.centre))
             # As much ground as the map was showing, so the angled view does
@@ -489,16 +505,16 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
                               self.view.centre[1] - half),
                              (self.view.centre[0] + half,
                               self.view.centre[1] + half),
-                             self.views.size(self.views.angled))
-        if not self.views.showing(self.views.map):
+                             self.views.size(self.angledView))
+        if not self.views.showing(self.mapView):
             # Where the camera was looking is where the map goes back to.
             self.view.centre = (float(self.orbit.centre[0]),
                                 float(self.orbit.centre[1]))
         self.views.arrange(*self.getViewPort())
         self.viewLayout = self.views.layout
-        self.platform = (self.views.map.camera
-                         if self.views.showing(self.views.map)
-                         else self.views.angled.camera)
+        self.platform = (self.mapView.camera
+                         if self.views.showing(self.mapView)
+                         else self.angledView.camera)
         self._checkLayoutMenu()
         self._stale = True
         self._report()
@@ -696,7 +712,7 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
                                on_change=self._land_changed)
         self.water = WaterEditor(self.project.landscape,
                                  on_change=self._land_changed)
-        self.tools = editor_tools(self.editor, self.view, self.views.map_size,
+        self.tools = editor_tools(self.editor, self.view, self._map_size,
                                   on_change=self._map_moved,
                                   on_tool=self._tool_changed, land=self.land,
                                   water=self.water)

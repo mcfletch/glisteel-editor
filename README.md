@@ -367,8 +367,10 @@ such as a real DEM.
 
 ## What is where
 
-The editor is deliberately thin. The landscape, the road generation and the
-baker belong to
+The editor is deliberately thin. The views, their arrangements and the
+gestures that move their cameras belong to the engine's
+[multi-view package](https://github.com/mcfletch/openglcontext/blob/main/docs/multiview.html);
+the landscape, the road generation and the baker belong to
 [OpenGLContext-editor](https://github.com/mcfletch/openglcontext-editor); the
 plan view, the tool modes and the menus belong to the engine's
 [editor toolkit](https://github.com/mcfletch/openglcontext/blob/main/docs/editing.html).
@@ -380,7 +382,7 @@ plan view, the tool modes and the menus belong to the engine's
 | `sculpting.py` | the brush, the strokes made with it, and taking them back |
 | `water.py` | where water wells up, and taking it back |
 | `controls.py` | what the pointer did, and what the map and the tools do about it |
-| `views.py` | the cameras the window draws through, and the arrangements of them |
+| `views.py` | which views the window has, and how a landscape is fitted into them |
 | `scene.py` | what the plan view draws: the land, the line, the road |
 | `status.py` | the five things the editor tells you |
 | `app.py` | the window, the menus, the tool palette, and baking |

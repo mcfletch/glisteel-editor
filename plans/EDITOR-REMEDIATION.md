@@ -861,12 +861,14 @@ gains the key and says what the view is for and what it is not.
 **Landed (2026-09-22): the split and the quad.** The engine draws several views
 in one frame, so the swap became one of four arrangements of the same cameras --
 the map, the angled view, the two side by side, and the map with the front and
-left elevations around the angled view (`glisteel_editor/views.py`,
-`EditorViews`; `v` takes them in turn, `space` gives one view the window). The
+left elevations around the angled view (`v` takes them in turn, `space` gives
+one view the window). The arrangements are the engine's
+`OpenGLContext.multiview.ViewSet`; `glisteel_editor/views.py` says which views
+the editor has and how a landscape is fitted into them. The
 map keeps the tools wherever it is on screen: `MapControls` is told the map's
 own rectangle, so a pointer in a quarter of the window reads the same square
 metre it would read filling it. The elevations and the angled view are moved by
-`OpenGLContext.edit.viewgestures.ViewGestures`, which is where the editor's own
+`OpenGLContext.multiview.ViewGestures`, which is where the editor's own
 `OrbitControls` went.
 
 The wheel went with it. The editor spelled the wheel buttons out itself, the
