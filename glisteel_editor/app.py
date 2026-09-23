@@ -197,6 +197,7 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         # which view it is.
         self.chrome = ViewChrome(layout=self.views.layout, stack=self.overlays,
                                  on_arrange=self._views_arranged,
+                                 bounds=self._landscape_box,
                                  only={'map': ('expand',)})
         self.overlays.push(self.chrome)
         # The bar takes the top of the window and the palette the left, so the
@@ -214,6 +215,12 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         self.addEventHandler('keypress', name='p', function=self._toggle_view)
         self.addEventHandler('keypress', name='v', function=self._next_layout)
         self.addEventHandler('keypress', name=' ', function=self._maximise)
+
+    def _landscape_box(self) -> tuple[tuple[float, ...], tuple[float, ...]]:
+        """The corners of the landscape, for a view asked to fit what there is."""
+        minimum, maximum = self.project.bounds()
+        low, high = self.scene.relief()
+        return ((minimum[0], low, minimum[1]), (maximum[0], high, maximum[1]))
 
     def _map_size(self) -> tuple[int, int]:
         """How many pixels across and down the map is drawn."""
