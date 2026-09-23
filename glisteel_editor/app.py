@@ -46,6 +46,7 @@ from OpenGLContext.ui import dialogs  # noqa: E402
 from OpenGLContext.ui.menu import MenuBar, MenuItem  # noqa: E402
 from OpenGLContext.ui.overlay import OverlayMixin  # noqa: E402
 from OpenGLContext.ui.toolpalette import ToolPalette  # noqa: E402
+from OpenGLContext.ui.viewchrome import ViewChrome  # noqa: E402
 from OpenGLContext.ui.widgets import Separator  # noqa: E402
 from OpenGLContext.viewer import environment  # noqa: E402
 from OpenGLContext.viewer.sceneviewer import ViewerContext  # noqa: E402
@@ -189,6 +190,15 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         self.overlays.push(self.menus)
         self.palette = ToolPalette(tools=self.tools, reserved=MENU_BAR_ROOM)
         self.overlays.push(self.palette)
+        # The views' own furniture: each one's name and axes, a button to give
+        # it the window, and the splitters between them. The map keeps only
+        # that button -- what the pointer does there is the tools' business
+        # rather than a camera's, and the read-outs in its corner already say
+        # which view it is.
+        self.chrome = ViewChrome(layout=self.views.layout, stack=self.overlays,
+                                 on_arrange=self._views_arranged,
+                                 only={'map': ('expand',)})
+        self.overlays.push(self.chrome)
         # The bar takes the top of the window and the palette the left, so the
         # read-outs start below one and beside the other.
         self.status = EditorStatus()
@@ -388,8 +398,11 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         metrics = self.overlayMetrics()
         scale = float(getattr(metrics, 'scale', 0.0)) if metrics else 0.0
         self._reserved_at = scale
-        self.status.reserved = (MENU_BAR_ROOM, 0.0, 0.0,
-                                self.palette.room(metrics))
+        room = (MENU_BAR_ROOM, 0.0, 0.0, self.palette.room(metrics))
+        self.status.reserved = room
+        # The views' furniture keeps out from under the same two things.
+        self.chrome.reserved = room
+        self.overlays.invalidate()
 
     def OnIdle(self, *args: Any) -> int:
         """Between frames: put right whatever an edit or a resize left stale."""
@@ -479,8 +492,14 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
     def _maximise(self, event: Any = None) -> None:
         """Give the view under the last click the whole window, or give it back."""
         self.views.maximise()
+        self._views_arranged()
+
+    def _views_arranged(self) -> None:
+        """Place the views again: something changed what is on screen."""
         self.views.arrange(*self.getViewPort())
+        self.overlays.invalidate()
         self._stale = True
+        self._report()
 
     def _show_views(self, name: str) -> None:
         """Show the arrangement ``name``, moving no camera that is already up.
@@ -512,6 +531,8 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
                                 float(self.orbit.centre[1]))
         self.views.arrange(*self.getViewPort())
         self.viewLayout = self.views.layout
+        self.chrome.layout_of = self.views.layout
+        self.overlays.invalidate()
         self.platform = (self.mapView.camera
                          if self.views.showing(self.mapView)
                          else self.angledView.camera)

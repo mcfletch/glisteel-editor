@@ -208,6 +208,15 @@ an elevation says how far above the ground it is. Drag in one to pan it and
 wheel to zoom about the pointer; `space` gives the view under the pointer the
 whole window and gives it back.
 
+Each view carries its own furniture: its name, an axis triad that turns with
+its camera, `[ ]` to give it the window, and `(o)` to say what the pointer does
+there — pan, rotate where the camera turns, and zoom by dragging for a pointer
+with no wheel. Switching one off takes the button away from that view alone.
+The lines between the views drag, and the point where they cross drags both.
+
+The map has only `[ ]`: what the pointer does there is the tool in force, and
+the read-outs in its corner already say which view it is.
+
 The map keeps the tools wherever it is on screen, so a line can be drawn in a
 quarter of the window while the elevations and the angled view show what it is
 doing to the land. The cameras are shared between the arrangements, so

@@ -956,9 +956,10 @@ independent and can land whenever the palette exists.
 
 ## What is still open
 
-- **The views are placed where the arrangement puts them.** The split and the
-  quad divide the window down the middle; a splitter to drag, and a label and
-  axis triad per view, are the engine's to offer.
+- **The views are placed where the arrangement puts them**, and the lines
+  between them drag (`OpenGLContext.ui.viewchrome`). What a view is fitted to
+  when it is first shown is the whole landscape; there is no memory of where
+  each view was last left between sessions.
 - **The tools are the map's.** In the elevations and the three-quarter view the
   pointer moves that view's camera; a route drawn there would want a ray
   against the ground rather than a place on it.
