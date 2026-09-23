@@ -16,6 +16,9 @@ Keys::
     left drag / arrows   move a control point, or the map
     right drag           pan the map
     wheel                zoom about the pointer
+    p                    look at the land from an angle
+    v                    map, angled, both, or all four views
+    space                give the view under the pointer the whole window
     f                    frame the whole landscape
     delete               remove the point under the pointer
     ctrl-z / ctrl-y      undo, redo
@@ -35,23 +38,20 @@ os.environ.setdefault('OPENGLCONTEXT_BACKEND', 'glfw')
 os.environ.setdefault('OPENGLCONTEXT_RENDERER', 'pbr')
 
 from OpenGLContext import testingcontext  # noqa: E402
-from OpenGLContext.edit.mapview import MapView, MapViewPlatform  # noqa: E402
-from OpenGLContext.edit.orbitview import OrbitView, OrbitViewPlatform  # noqa: E402
+from OpenGLContext.edit.mapview import MapView  # noqa: E402
+from OpenGLContext.edit.orbitview import OrbitView  # noqa: E402
 from OpenGLContext.move.viewplatform import ViewPlatform  # noqa: E402
 from OpenGLContext.scenegraph.scenegraph import SceneGraph  # noqa: E402
 from OpenGLContext.ui import dialogs  # noqa: E402
 from OpenGLContext.ui.menu import MenuBar, MenuItem  # noqa: E402
 from OpenGLContext.ui.overlay import OverlayMixin  # noqa: E402
 from OpenGLContext.ui.toolpalette import ToolPalette  # noqa: E402
+from OpenGLContext.ui.viewchrome import ViewChrome  # noqa: E402
 from OpenGLContext.ui.widgets import Separator  # noqa: E402
 from OpenGLContext.viewer import environment  # noqa: E402
 from OpenGLContext.viewer.sceneviewer import ViewerContext  # noqa: E402
 
-from glisteel_editor.controls import (  # noqa: E402
-    ZOOM_STEP,
-    MapControls,
-    OrbitControls,
-)
+from glisteel_editor.controls import ZOOM_STEP, MapControls  # noqa: E402
 from glisteel_editor.editing import RouteEditor, editor_tools  # noqa: E402
 from glisteel_editor.project import Project, new_project  # noqa: E402
 from glisteel_editor.scene import (  # noqa: E402
@@ -61,6 +61,11 @@ from glisteel_editor.scene import (  # noqa: E402
 )
 from glisteel_editor.sculpting import LandEditor  # noqa: E402
 from glisteel_editor.status import EditorStatus  # noqa: E402
+from glisteel_editor.views import (  # noqa: E402
+    LAYOUTS,
+    editor_views,
+    frame_landscape,
+)
 from glisteel_editor.water import WaterEditor  # noqa: E402
 
 log = logging.getLogger(__name__)
@@ -77,6 +82,19 @@ MENU_BAR_ROOM = 30.0
 
 #: The default name a bake is written under, beside the project file.
 BAKE_SUFFIX = '-world'
+
+#: The arrangements of views the View menu offers, each with the key that
+#: shows it: the text, the name :mod:`glisteel_editor.views` knows it by, and
+#: the shortcut. ``v`` takes them in this order.
+LAYOUT_MENU = (
+    ('Map', 'map', None),
+    ('Look at it', 'angled', 'p'),
+    ('Map and angled', 'split', None),
+    ('Four views', 'quad', None),
+)
+
+#: What a tick in the View menu is kept in step with.
+LAYOUT_ITEMS = tuple((text, name) for text, name, _key in LAYOUT_MENU)
 
 #: The contour spacings the View menu offers, in metres. A ladder rather than a
 #: number to type: a designer chooses how densely the land is described, and
@@ -112,13 +130,28 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         self.scene.contour_interval = self.view_options['contour_interval']
         self.view = MapView(centre=(0.0, 0.0),
                             span=self.project.landscape.extent)
-        # The platform the context made for itself is a perspective camera;
-        # this one reads the map. It has to be told the window's size, because
-        # the context told the one it is replacing and will not do it again
-        # until the window is resized.
-        self.mapPlatform = MapViewPlatform(self.view, self.getViewPort())
-        self.platform = self.mapPlatform
-        self.platform.setViewport(*self.getViewPort())
+        # The same scene from an angle: the map is what a line is drawn on, and
+        # this is what the land is judged on.
+        self.orbit = OrbitView(centre=self.view.centre)
+        # The views the window can show, and the arrangements of them. The
+        # cameras are the two above, so a switch of arrangement changes where a
+        # designer is looking from rather than where they are.
+        self.views = editor_views(self.view, self.orbit)
+        #: The two views the editor asks about by name: the map is where the
+        #: tools draw, and the angled view is what the land is judged in.
+        self.mapView = self.views.named('map')
+        self.angledView = self.views.named('angled')
+        self.views.show(getattr(self.config, 'views', 'map') or 'map')
+        self.viewLayout = self.views.layout
+        self.views.arrange(*self.getViewPort())
+        # Every view starts on the whole landscape, so an arrangement a
+        # designer switches to is looking at the ground rather than at
+        # whatever is around the origin.
+        low, high = self.project.bounds()
+        frame_landscape(self.views, low, high, self.scene.relief())
+        self.platform = (self.mapView.camera
+                         if self.views.showing(self.mapView)
+                         else self.angledView.camera)
         self.editor = RouteEditor(
             self._route(), on_change=self._route_changed,
             height_fn=lambda x, z: self.scene.world().natural()(x, z),
@@ -127,22 +160,15 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
                                on_change=self._land_changed)
         self.water = WaterEditor(self.project.landscape,
                                  on_change=self._land_changed)
-        self.tools = editor_tools(self.editor, self.view, self.getViewPort,
+        self.tools = editor_tools(self.editor, self.view, self._map_size,
                                   on_change=self._map_moved,
                                   on_tool=self._tool_changed, land=self.land,
                                   water=self.water)
         self.controls = MapControls(
-            self.view, self.tools, self.getViewPort, editor=self.editor,
+            self.view, self.tools, self._map_size, editor=self.editor,
             height_at=lambda x, z: self.scene.height_at(x, z),
+            locate=self._map_local,
             on_change=self._map_moved, on_settle=self._settle)
-        # The same scene from an angle: the map is what a line is drawn on, and
-        # this is what the land is judged on. One window, two cameras.
-        self.orbit = OrbitView(centre=self.view.centre)
-        self.orbitPlatform = OrbitViewPlatform(self.orbit, self.getViewPort())
-        self.orbitControls = OrbitControls(self.orbit, self.getViewPort,
-                                           on_change=self._map_moved)
-        #: Whether the window is showing the three-quarter view.
-        self.perspective = False
         self._dirty_road = False
         #: When this window opened, so the water's clock starts at zero rather
         #: than at whenever the machine was switched on.
@@ -164,6 +190,15 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         self.overlays.push(self.menus)
         self.palette = ToolPalette(tools=self.tools, reserved=MENU_BAR_ROOM)
         self.overlays.push(self.palette)
+        # The views' own furniture: each one's name and axes, a button to give
+        # it the window, and the splitters between them. The map keeps only
+        # that button -- what the pointer does there is the tools' business
+        # rather than a camera's, and the read-outs in its corner already say
+        # which view it is.
+        self.chrome = ViewChrome(layout=self.views.layout, stack=self.overlays,
+                                 on_arrange=self._views_arranged,
+                                 only={'map': ('expand',)})
+        self.overlays.push(self.chrome)
         # The bar takes the top of the window and the palette the left, so the
         # read-outs start below one and beside the other.
         self.status = EditorStatus()
@@ -177,6 +212,16 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         # this returns and the key is silently dead.
         self.addEventHandler('keypress', name='f', function=self._frame_all)
         self.addEventHandler('keypress', name='p', function=self._toggle_view)
+        self.addEventHandler('keypress', name='v', function=self._next_layout)
+        self.addEventHandler('keypress', name=' ', function=self._maximise)
+
+    def _map_size(self) -> tuple[int, int]:
+        """How many pixels across and down the map is drawn."""
+        return self.views.size(self.mapView)
+
+    def _map_local(self, x: float, y: float) -> tuple[float, float]:
+        """A window pixel in the map's own pixels, measured from its corner."""
+        return self.views.local(self.mapView, x, y)
 
     # -- what the project holds -------------------------------------------
     def _route(self) -> Any:
@@ -239,9 +284,9 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         # as the view comes in, which is what makes a river bed or a sculpted
         # hill visible at all.
         self.scene.viewing(self._looking_at(), self._looking_span(),
-                           self.getViewPort())
+                           self._map_size())
         content = self.scene.build(
-            self.view.metres_per_pixel(self.getViewPort()),
+            self.view.metres_per_pixel(self._map_size()),
             self.editor.hovered, brush=self._brush())
         keep = [child for child in self.sg.children
                 if child is not self._content]
@@ -249,9 +294,24 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         self.sg.children = keep + [content]
         self.triggerRedraw(1)
 
+    @property
+    def perspective(self) -> bool:
+        """Whether the window is showing the land only from an angle.
+
+        The map is what the tools draw on, so the arrangements that hold it --
+        the map alone, the split and the quad -- all leave the pointer
+        drawing; the angled view on its own is the one that does not.
+        """
+        return self.views.mode == 'angled'
+
     def _viewpoint(self) -> str:
-        """Where the camera is, for the read-out, or nothing on the map."""
-        if not self.perspective:
+        """Where the camera is, for the read-out, or nothing while a map is up.
+
+        The scale is what a designer drawing a line needs, and it is true
+        wherever a map is on screen; the camera's distance is what there is to
+        say instead when none is.
+        """
+        if self.views.showing(self.mapView):
             return ''
         return '%s away, %.0f deg up' % (
             _said(self.orbit.distance), self.orbit.pitch)
@@ -301,7 +361,7 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
             title=self.project.title(),
             points=len(route.points) if route else 0,
             length=route.length() if route else 0.0,
-            scale=self.view.metres_per_pixel(self.getViewPort()),
+            scale=self.view.metres_per_pixel(self._map_size()),
             tool=self._tool_label(),
             structures=self.scene.structure_counts(),
             viewpoint=self._viewpoint())
@@ -313,11 +373,13 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         the window's height, so a resize is not something the map can miss.
         """
         super().ViewPort(width, height)
-        view = getattr(self, 'view', None)
-        if view is None:
+        views = getattr(self, 'views', None)
+        if views is None:
             return
-        self.platform.setViewport(width, height or 1)
-        self.orbitPlatform.setViewport(width, height or 1)
+        # Each view's camera is told the size of its own tile, which is what
+        # the map's scale and the angled view's aspect ratio are measured
+        # against.
+        views.arrange(width, height or 1)
         self._report()
         # Not rebuilt here: a window being dragged to a new size sends a
         # stream of these, and re-meshing the landscape for each one would
@@ -336,8 +398,11 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         metrics = self.overlayMetrics()
         scale = float(getattr(metrics, 'scale', 0.0)) if metrics else 0.0
         self._reserved_at = scale
-        self.status.reserved = (MENU_BAR_ROOM, 0.0, 0.0,
-                                self.palette.room(metrics))
+        room = (MENU_BAR_ROOM, 0.0, 0.0, self.palette.room(metrics))
+        self.status.reserved = room
+        # The views' furniture keeps out from under the same two things.
+        self.chrome.reserved = room
+        self.overlays.invalidate()
 
     def OnIdle(self, *args: Any) -> int:
         """Between frames: put right whatever an edit or a resize left stale."""
@@ -373,17 +438,20 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
             if event.name == '<ctrl-y>':
                 self._redo()
                 return True
-            if self.perspective:
-                # The tools draw on the map; here the pointer is the camera's
-                # and there is nothing for a key to reach.
+            if not self.views.showing(self.mapView):
+                # The tools draw on the map; with no map on screen the pointer
+                # is the camera's and there is nothing for a key to reach.
                 return False
             return self.controls.key(event.name, tuple(event.getModifiers()))
-        if self.perspective:
-            if kind == 'mousebutton':
-                return bool(self.orbitControls.button(event))
-            if kind == 'mousemove':
-                return bool(self.orbitControls.moved(event))
-            return False
+        if kind in ('mousebutton', 'mousemove'):
+            # Which view the pointer is in decides what it means: the map is
+            # the tools', and the elevations and the angled view are their
+            # cameras'.
+            if self.views.view_for(event) is not self.mapView:
+                if self.views.handle(event):
+                    self._map_moved()
+                    return True
+                return False
         if kind == 'mousebutton':
             return bool(self.controls.button(event))
         if kind == 'mousemove':
@@ -408,54 +476,76 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
 
     def _frame_all(self, event: Any = None) -> None:
         minimum, maximum = self.project.bounds()
-        if self.perspective:
-            self.orbit.frame(minimum, maximum, self.getViewPort())
-            self._map_moved()
-            return
-        self.controls.frame(minimum, maximum)
+        frame_landscape(self.views, minimum, maximum, self.scene.relief())
+        self._map_moved()
 
-    # -- looking at it ------------------------------------------------------
+    # -- which views are up -------------------------------------------------
     def _toggle_view(self, event: Any = None) -> None:
         """Swap between the map and the three-quarter view."""
-        self._look_at_it(not self.perspective)
+        self._show_views('map' if self.perspective else 'angled')
 
-    def _look_at_it(self, perspective: bool) -> None:
-        """Show the window's contents from an angle, or from straight above.
+    def _next_layout(self, event: Any = None) -> None:
+        """Take the arrangements in turn, so one key reaches all of them."""
+        self._show_views(LAYOUTS[(LAYOUTS.index(self.views.mode) + 1)
+                                 % len(LAYOUTS)])
 
-        The same scene either way -- nothing is rebuilt, so the swap is
-        instant. The three-quarter view starts where the map was looking, so
-        what was under the pointer is what is in front of the camera.
+    def _maximise(self, event: Any = None) -> None:
+        """Give the view under the last click the whole window, or give it back."""
+        self.views.maximise()
+        self._views_arranged()
+
+    def _views_arranged(self) -> None:
+        """Place the views again: something changed what is on screen."""
+        self.views.arrange(*self.getViewPort())
+        self.overlays.invalidate()
+        self._stale = True
+        self._report()
+
+    def _show_views(self, name: str) -> None:
+        """Show the arrangement ``name``, moving no camera that is already up.
+
+        The same scene however it is arranged -- nothing is rebuilt, so the
+        switch is instant. A camera coming on screen that has never been
+        pointed anywhere starts where the map is looking, so the window shows
+        the ground the designer was working on rather than wherever the
+        landscape's origin is.
         """
-        if bool(perspective) == self.perspective:
+        if name == self.views.mode:
             return
-        self.perspective = bool(perspective)
-        if self.perspective:
+        showing = self.views.showing(self.angledView)
+        self.views.show(name)
+        if not showing and self.views.showing(self.angledView):
             self.orbit.look_at(self.view.centre,
                                self.scene.height_at(*self.view.centre))
-            # As much ground as the map was showing, so the swap does not
-            # arrive somewhere else.
+            # As much ground as the map was showing, so the angled view does
+            # not arrive somewhere else.
             half = self.view.span / 2.0
             self.orbit.frame((self.view.centre[0] - half,
                               self.view.centre[1] - half),
                              (self.view.centre[0] + half,
                               self.view.centre[1] + half),
-                             self.getViewPort())
-        else:
+                             self.views.size(self.angledView))
+        if not self.views.showing(self.mapView):
             # Where the camera was looking is where the map goes back to.
             self.view.centre = (float(self.orbit.centre[0]),
                                 float(self.orbit.centre[1]))
-        self.platform = self.orbitPlatform if self.perspective else \
-            self.mapPlatform
-        self.platform.setViewport(*self.getViewPort())
-        self._checkMenu('Look at it', self.perspective)
+        self.views.arrange(*self.getViewPort())
+        self.viewLayout = self.views.layout
+        self.chrome.layout_of = self.views.layout
+        self.overlays.invalidate()
+        self.platform = (self.mapView.camera
+                         if self.views.showing(self.mapView)
+                         else self.angledView.camera)
+        self._checkLayoutMenu()
         self._stale = True
         self._report()
 
-    def _checkMenu(self, text: str, checked: bool) -> None:
-        """Keep a menu item's tick in step with a key that does the same."""
-        for item in self.menus.allItems():
-            if str(item.text) == text:
-                item.checked = bool(checked)
+    def _checkLayoutMenu(self) -> None:
+        """Keep the View menu's ticks in step with the keys that do the same."""
+        for text, name in LAYOUT_ITEMS:
+            for item in self.menus.allItems():
+                if str(item.text) == text:
+                    item.checked = (name == self.views.mode)
 
     # -- the menus ----------------------------------------------------------
     def _menus(self) -> list:
@@ -488,10 +578,10 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
             ]),
             ('Terrain', self._terrain_items()),
             ('View', [
-                MenuItem(text='Look at it', shortcut='p', checkable=True,
-                         checked=False,
-                         on_activate=lambda w: self._look_at_it(
-                             bool(w.checked))),
+                *self._layout_items(),
+                MenuItem(text='Maximise this view (space)',
+                         on_activate=lambda w: self._maximise()),
+                Separator(),
                 MenuItem(text='Frame the landscape', shortcut='f',
                          on_activate=lambda w: self._frame_all()),
                 MenuItem(text='Zoom in',
@@ -511,6 +601,16 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
                          submenu=self._interval_items()),
             ]),
         ]
+
+    def _layout_items(self) -> list:
+        """The arrangements of views, one item each, ticked where it is up."""
+        def choose(name: str) -> Any:
+            return lambda widget: self._show_views(name)
+
+        return [MenuItem(text=text, shortcut=shortcut, checkable=True,
+                         checked=(name == self.views.mode),
+                         on_activate=choose(name))
+                for text, name, shortcut in LAYOUT_MENU]
 
     def _terrain_items(self) -> list:
         """The landscapes a track can be cut into, and which one it is on."""
@@ -633,7 +733,7 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
                                on_change=self._land_changed)
         self.water = WaterEditor(self.project.landscape,
                                  on_change=self._land_changed)
-        self.tools = editor_tools(self.editor, self.view, self.getViewPort,
+        self.tools = editor_tools(self.editor, self.view, self._map_size,
                                   on_change=self._map_moved,
                                   on_tool=self._tool_changed, land=self.land,
                                   water=self.water)
@@ -834,6 +934,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument('--datum', type=float, default=0.0,
                         help="how many metres above the waterline the middle "
                              "of an imported landscape sits")
+    parser.add_argument('--views', default='map', choices=list(LAYOUTS),
+                        help="which views the window opens on: the map, the "
+                             "angled view, the two side by side, or all four "
+                             "(default: map)")
     parser.add_argument('--size', default=(1280, 800), type=window_size,
                         metavar='WIDTHxHEIGHT',
                         help="window size (default: 1280x800)")

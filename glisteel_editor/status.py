@@ -55,10 +55,10 @@ class EditorStatus(HUDLayer):
         says nothing about the third of a route that is a viaduct, and that is
         the expensive third.
 
-        ``viewpoint`` replaces the scale when the window is not a map. A metre
-        is the same number of pixels everywhere on a map and nowhere in a
-        perspective view, so a scale shown there would be a number that is only
-        true down the middle of the screen.
+        ``viewpoint`` replaces the scale when no map is on screen. A metre is
+        the same number of pixels everywhere on a map and nowhere in a
+        perspective view, so a scale shown for one would be a number that is
+        only true down the middle of the screen.
         """
         self.title.value = title
         self.route.value = '%d points, %s%s' % (points, _distance(length),

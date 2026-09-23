@@ -177,17 +177,56 @@ underwater.
 Press `p`, or **View → Look at it**, and the window shows the same scene from a
 three-quarter angle: the land with its shape in it, the road with its bridges
 and bores, the contours draped over the ground. Drag to swing the camera round
-what it is looking at, wheel to move in and out, `f` to take in the whole
-landscape, `p` again to go back to the map.
+what it is looking at, drag with another button to carry it across the ground,
+wheel to move in and out, `f` to take in the whole landscape, `p` again to go
+back to the map.
 
 The map is what a line is drawn on — a metre is the same number of pixels
 wherever it is, so the line drawn is the line the world gets. This is what the
 land is *judged* on: shading and contours say how high the ground is, and only
 looking at it says whether it looks right.
 
-The swap is instant and nothing is rebuilt, and it starts where the map was
-looking, so what was under the pointer is what is in front of the camera. The
-tools stay on the map: here the pointer is the camera's.
+The switch is instant and nothing is rebuilt, and the angled view starts where
+the map was looking, so what was under the pointer is what is in front of the
+camera.
+
+### Four views at once
+
+The View menu holds four arrangements of the same cameras, and `v` takes them
+in turn:
+
+| Arrangement | Shows |
+|---|---|
+| Map | the plan alone, filling the window |
+| Look at it (`p`) | the three-quarter view alone |
+| Map and angled | the two side by side |
+| Four views | the map, the front and left elevations, and the angled view |
+
+The elevations are orthographic views along the axes, which is where a cutting,
+an embankment or a bridge deck is read: the plan says where the road goes and
+an elevation says how far above the ground it is. Drag in one to pan it and
+wheel to zoom about the pointer; `space` gives the view under the pointer the
+whole window and gives it back.
+
+Each view carries its own furniture: its name, an axis triad that turns with
+its camera, `[ ]` to give it the window, and `(o)` to say what the pointer does
+there — pan, rotate where the camera turns, and zoom by dragging for a pointer
+with no wheel. Switching one off takes the button away from that view alone.
+The lines between the views drag, and the point where they cross drags both.
+
+The map has only `[ ]`: what the pointer does there is the tool in force, and
+the read-outs in its corner already say which view it is.
+
+The map keeps the tools wherever it is on screen, so a line can be drawn in a
+quarter of the window while the elevations and the angled view show what it is
+doing to the land. The cameras are shared between the arrangements, so
+switching shows what was already being looked at.
+
+Open straight into one with `--views`:
+
+```console
+glisteel-editor mytrack.glisteel --views quad
+```
 
 ## Reading the land
 
@@ -337,8 +376,10 @@ such as a real DEM.
 
 ## What is where
 
-The editor is deliberately thin. The landscape, the road generation and the
-baker belong to
+The editor is deliberately thin. The views, their arrangements and the
+gestures that move their cameras belong to the engine's
+[multi-view package](https://github.com/mcfletch/openglcontext/blob/main/docs/multiview.html);
+the landscape, the road generation and the baker belong to
 [OpenGLContext-editor](https://github.com/mcfletch/openglcontext-editor); the
 plan view, the tool modes and the menus belong to the engine's
 [editor toolkit](https://github.com/mcfletch/openglcontext/blob/main/docs/editing.html).
@@ -350,6 +391,7 @@ plan view, the tool modes and the menus belong to the engine's
 | `sculpting.py` | the brush, the strokes made with it, and taking them back |
 | `water.py` | where water wells up, and taking it back |
 | `controls.py` | what the pointer did, and what the map and the tools do about it |
+| `views.py` | which views the window has, and how a landscape is fitted into them |
 | `scene.py` | what the plan view draws: the land, the line, the road |
 | `status.py` | the five things the editor tells you |
 | `app.py` | the window, the menus, the tool palette, and baking |
@@ -365,9 +407,11 @@ plan view, the tool modes and the menus belong to the engine's
   their elevation on the map yet.
 - **One route per project.** The model holds a list; the interface draws the
   first.
-- **The perspective view is a swap, not a split.** One window shows the map or
-  the three-quarter view, not both at once, and you cannot draw in the
-  three-quarter view.
+- **The tools draw on the map.** The elevations and the three-quarter view show
+  what the line is doing and move their own cameras; a point is put down, moved
+  or taken out on the plan.
+- **The views are placed where the arrangement puts them.** The split and the
+  quad divide the window down the middle; there is no splitter to drag yet.
 - **Undo belongs to the tool in force.** Changing the landscape from the Terrain
   menu, or its size, is not on any history. Within a tool, one gesture is one
   step: a point or a spring dragged across the map is taken back in one, and

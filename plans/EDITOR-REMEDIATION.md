@@ -858,6 +858,25 @@ platforms.
 **Docs.** `openglcontext/docs/editing.html` beside the plan view; `README.md`
 gains the key and says what the view is for and what it is not.
 
+**Landed (2026-09-22): the split and the quad.** The engine draws several views
+in one frame, so the swap became one of four arrangements of the same cameras --
+the map, the angled view, the two side by side, and the map with the front and
+left elevations around the angled view (`v` takes them in turn, `space` gives
+one view the window). The arrangements are the engine's
+`OpenGLContext.multiview.ViewSet`; `glisteel_editor/views.py` says which views
+the editor has and how a landscape is fitted into them. The
+map keeps the tools wherever it is on screen: `MapControls` is told the map's
+own rectangle, so a pointer in a quarter of the window reads the same square
+metre it would read filling it. The elevations and the angled view are moved by
+`OpenGLContext.multiview.ViewGestures`, which is where the editor's own
+`OrbitControls` went.
+
+The wheel went with it. The editor spelled the wheel buttons out itself, the
+opposite way round from the engine, so a notch away from the designer zoomed
+the map out; the constants now come from
+`OpenGLContext.events.mouseevents` and a notch away zooms in, as it does in
+every other view. marble-editor spells them out the same way.
+
 ### What landed — **Done**, 2026-08-19
 
 `OpenGLContext/edit/orbitview.py`: `OrbitView` (a point on the ground, a
@@ -937,12 +956,13 @@ independent and can land whenever the palette exists.
 
 ## What is still open
 
-- **The perspective view is a swap, not a split.** Map and three-quarter view
-  side by side, both live, is pass-level work: the render pass takes the whole
-  window. See **K**.
-- **The tools are the map's.** In the three-quarter view the pointer orbits; a
-  route drawn there would want a ray against the ground rather than a place on
-  it.
+- **The views are placed where the arrangement puts them**, and the lines
+  between them drag (`OpenGLContext.ui.viewchrome`). What a view is fitted to
+  when it is first shown is the whole landscape; there is no memory of where
+  each view was last left between sessions.
+- **The tools are the map's.** In the elevations and the three-quarter view the
+  pointer moves that view's camera; a route drawn there would want a ray
+  against the ground rather than a place on it.
 - **The ground redraws when a gesture ends**, not while it is being dragged.
   Re-meshing the landscape and re-settling the road costs ~300 ms; the brush
   ring is what moves in the meantime. A lower-resolution preview mesh under the
