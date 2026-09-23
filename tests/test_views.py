@@ -151,31 +151,44 @@ class TestWhoTheEventBelongsTo:
         views.show('quad')
         plan = views.view('map')
         centre = plan.camera.view.centre
-        event = _Event(*_centre_of(plan))
+        event = _Event(*_centre_of(plan), button=2)
         assert views.view_for(event) is plan
         assert not views.handle(event)
         assert not views.handle(_Event(*_centre_of(plan), kind='mousemove'))
         assert plan.camera.view.centre == centre
 
-    def test_a_drag_in_an_elevation_pans_it(self):
+    def test_a_right_drag_in_an_elevation_pans_it(self):
         views = _views()
         views.show('quad')
         front = views.view('front')
         before = np.array(front.camera.view.centre)
         x, y = _centre_of(front)
-        assert views.handle(_Event(x, y))
+        assert views.handle(_Event(x, y, button=2))
         assert views.handle(_Event(x + 30, y, kind='mousemove'))
         assert not np.allclose(front.camera.view.centre, before)
 
-    def test_a_drag_in_the_angled_view_turns_the_camera(self):
+    def test_a_right_drag_in_the_angled_view_turns_the_camera(self):
         views = _views()
         views.show('split')
         angled = views.view('angled')
         heading = angled.camera.view.heading
         x, y = _centre_of(angled)
-        assert views.handle(_Event(x, y))
+        assert views.handle(_Event(x, y, button=2))
         assert views.handle(_Event(x + 30, y, kind='mousemove'))
         assert angled.camera.view.heading != heading
+
+    def test_a_middle_drag_in_the_angled_view_carries_what_it_looks_at(self):
+        """The left button is the tools', wherever the pointer also draws."""
+        views = _views()
+        views.show('split')
+        angled = views.view('angled')
+        heading = angled.camera.view.heading
+        target = np.array(angled.camera.view.target())
+        x, y = _centre_of(angled)
+        assert views.handle(_Event(x, y, button=1))
+        assert views.handle(_Event(x + 30, y, kind='mousemove'))
+        assert angled.camera.view.heading == heading
+        assert not np.allclose(angled.camera.view.target(), target)
 
     def test_the_wheel_zooms_an_elevation_under_the_pointer(self):
         views = _views()

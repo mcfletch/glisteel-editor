@@ -176,10 +176,10 @@ underwater.
 
 Press `p`, or **View → Look at it**, and the window shows the same scene from a
 three-quarter angle: the land with its shape in it, the road with its bridges
-and bores, the contours draped over the ground. Drag to swing the camera round
-what it is looking at, drag with another button to carry it across the ground,
-wheel to move in and out, `f` to take in the whole landscape, `p` again to go
-back to the map.
+and bores, the contours draped over the ground. Right-drag to swing the camera
+round what it is looking at, middle-drag to carry it across the ground, wheel
+to move in and out, `f` to take in the whole landscape, `p` again to go back to
+the map.
 
 The map is what a line is drawn on — a metre is the same number of pixels
 wherever it is, so the line drawn is the line the world gets. This is what the
@@ -204,8 +204,9 @@ in turn:
 
 The elevations are orthographic views along the axes, which is where a cutting,
 an embankment or a bridge deck is read: the plan says where the road goes and
-an elevation says how far above the ground it is. Drag in one to pan it and
-wheel to zoom about the pointer; `space` gives the view under the pointer the
+an elevation says how far above the ground it is. Right-drag in one to pan it
+and wheel to zoom about the pointer -- the left button is left for the tools,
+in every view; `space` gives the view under the pointer the
 whole window and gives it back.
 
 Each view carries its own furniture: its name, an axis triad that turns with
