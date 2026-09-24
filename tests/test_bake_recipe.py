@@ -43,6 +43,7 @@ class TestTheKnobsThatReachTheWorld:
     @pytest.mark.parametrize('option,field', [
         ('--no-structures', 'structures'),
         ('--no-road', 'road'),
+        ('--no-places', 'places'),
     ])
     def test_a_switch_that_turns_something_off(self, option, field) -> None:
         assert settings([]).world.get(field, True) is not False
@@ -145,7 +146,7 @@ class TestTheWorldItBuilds:
         made, stock = bake.world_for(settings([])), ProceduralWorld()
         for field in ('extent', 'resolution', 'seed', 'ground', 'forest',
                       'water_level', 'relief', 'maximum_bank', 'variety',
-                      'closed', 'structures', 'posted'):
+                      'closed', 'structures', 'posted', 'places'):
             assert getattr(made, field) == getattr(stock, field), field
 
 

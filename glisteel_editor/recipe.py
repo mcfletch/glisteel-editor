@@ -121,6 +121,10 @@ WORLD_SETTINGS: tuple[Setting, ...] = (
     Setting('closed', bool, 'a lap rather than a point-to-point run; --open '
             'gives a hill climb, with a start and a finish',
             switch='--open', flag_to=False),
+    Setting('places', bool, 'give every bore, causeway, bridge and stretch of '
+            'forest a zone: lit by an environment captured in it, and heard '
+            'with its own birdsong, surf or echo',
+            switch='--no-places', flag_to=False),
 )
 
 #: What the *bake* is: how the world is cut up, not what it is.
