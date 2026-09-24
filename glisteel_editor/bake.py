@@ -86,6 +86,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument('--force', action='store_true',
                         help='overwrite the output directory if it already holds '
                              'a baked world')
+    parser.add_argument('--no-probes', action='store_true',
+                        help="leave each place's environment to be captured "
+                             'while the game runs, rather than baking it '
+                             '(which needs a GPU the bake can render with)')
     parser.add_argument('--view', action='store_true',
                         help='open the baked world in oglc-view when it is done')
     parser.add_argument('--quiet', '-q', action='store_true',
@@ -115,6 +119,14 @@ def main(argv: Sequence[str] | None = None) -> int:
                         progress=progress)
     manifest = describe(world, options, result, name=settings.name)
     write_manifest(options.output, manifest)
+    if settings.world.get('places', True) and not options.no_probes:
+        # Each place's environment is captured now, while the whole world and
+        # its art are here to be drawn, so a run uploads it rather than
+        # drawing it. Before the art moves: the captures draw the trees.
+        from OpenGLContext_editor.bake.probes import bake_probes
+        baked = bake_probes(options.output)
+        if not options.quiet:
+            print('  places:      %d environments baked' % (baked,))
     if options.art_pack:
         moved = split_art(options.output, options.art_pack)
         if not options.quiet:

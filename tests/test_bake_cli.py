@@ -8,8 +8,9 @@ from glisteel_editor import bake
 
 
 def _run(tmp_path, *arguments):
-    return bake.main(['--output', str(tmp_path / 'world'), '--extent', '512',
-                      '--depth', '1', '--resolution', '9', *arguments])
+    return bake.main(['--output', str(tmp_path / 'world'), '--no-probes',
+                      '--extent', '512', '--depth', '1', '--resolution', '9',
+                      *arguments])
 
 
 class TestBakingFromTheCommandLine:
