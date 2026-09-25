@@ -29,6 +29,10 @@ __all__ = ['Landscape', 'Route', 'Project']
 #: What an unsaved project is called until it has a file of its own.
 UNTITLED = 'Untitled'
 
+#: The depth of tile tree a project's world is laid out for and baked at when
+#: nothing asks for another: the tree the recipe bake uses by default.
+BAKE_DEPTH = 4
+
 
 @dataclass
 class Landscape:
@@ -253,13 +257,14 @@ class Project:
         return ((-half, -half), (half, half))
 
     # -- the world it describes -------------------------------------------
-    def world(self) -> Any:
+    def world(self, depth: int = BAKE_DEPTH) -> Any:
         """The world these decisions make, ready to bake or to measure.
 
         Built fresh each time rather than kept: everything downstream of a
         route -- the alignment, the earthworks, where the trees can stand --
         changes when a point moves, and a world held across an edit would be
-        answering about the line as it used to be.
+        answering about the line as it used to be. ``depth`` is the depth of
+        the tile tree it is laid out for.
         """
         from OpenGLContext_editor.world.procedural import ProceduralWorld
         route = self.route()
@@ -278,7 +283,16 @@ class Project:
             closed=bool(route.closed) if route is not None else True,
             start_at=route.start_point() if drivable and route is not None
             else None,
+            depth=depth,
         )
+
+    def bake(self, directory: str, depth: int = BAKE_DEPTH) -> Any:
+        """The ``BakeResult`` of baking this project's world into ``directory``.
+
+        The world is laid out for a tree of ``depth`` and baked at that depth,
+        with the credits of what it is made of.
+        """
+        return self.world(depth=depth).bake(directory)
 
     # -- the file ----------------------------------------------------------
     def to_json(self) -> dict[str, Any]:

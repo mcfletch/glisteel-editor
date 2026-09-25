@@ -797,11 +797,7 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
             return
         directory = self._bake_directory()
         self._say("Baking to %s ..." % directory)
-        from OpenGLContext_editor.bake.driver import bake_world
-        from OpenGLContext_editor.world.procedural import CREDITS
-        world = self.project.world()
-        result = bake_world(world.layers(), directory, depth=4,
-                            credits=list(CREDITS))
+        result = self.project.bake(directory)
         self.config.baked = result.tileset
         self._say("Baked %d tiles to %s" % (result.tiles, result.tileset))
 

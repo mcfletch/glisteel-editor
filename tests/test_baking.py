@@ -183,3 +183,14 @@ class TestTheRiversInIt:
 
 if __name__ == '__main__':
     raise SystemExit(pytest.main([__file__, '-v']))
+
+
+class TestTheProjectBakes:
+    def test_at_the_depth_asked_with_the_world_s_own_credits(
+            self, tmp_path) -> None:
+        project = _drawn()
+        result = project.bake(str(tmp_path), depth=2)
+        with open(result.tileset) as handle:
+            document = json.load(handle)
+        credits = project.world(depth=2).credits()
+        assert document['asset']['copyright'] == '; '.join(credits)
