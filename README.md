@@ -377,8 +377,9 @@ for track in tracks/*.toml; do
 done
 ```
 
-The first track moves its art into the pack and the rest find it already
-there — and are refused if what they wrote is *not* the same art, since the
+The first track moves its art into the pack (copied into a staged directory
+and swapped in, so an interrupted bake leaves the pack without a directory
+rather than with part of one) and the rest find it already there — and are refused if what they wrote is *not* the same art, since the
 whole split rests on that. A track pack and its art pack unpack into the same
 directory on a player's disk, so `trees/...` in a tile resolves exactly as it
 does in a bake that never split, and nothing about a path changes.
@@ -448,7 +449,11 @@ plan view, the tool modes and the menus belong to the engine's
 - A project file is written whole or not at all - it goes to a temporary file
   beside the target and is moved onto it, so a save interrupted by a full disk
   or a lost machine leaves the previous version. It is UTF-8, so a track named
-  in any language reads the same on another machine.
+  in any language reads the same on another machine. Opening one, a value
+  that is not a number takes its default and is logged, one out of range is
+  held to it (an extent of at least a metre, a ground resolution of at least
+  two samples, a tree density of at least zero), and a flag reads `true`,
+  `false`, `yes`, `no`, `on`, `off`, `1` or `0`.
 - A bake with places needs a GPU - see
   [Places and their environments](#places-and-their-environments).
 
