@@ -94,7 +94,7 @@ class TestTakingBackAChangeToTheLine:
         assert editor.route.reversed is False
 
     def test_the_state_says_what_it_holds(self) -> None:
-        state = self._editor()._state()
+        state = self._editor().state()
         assert state.points == [(0.0, 0.0), (100.0, 0.0)]
         assert state.closed is True
         assert state.start == 0

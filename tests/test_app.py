@@ -59,7 +59,7 @@ class TestPuttingTheQuestion:
         window.pushed = []
         window.pushOverlay = window.pushed.append
         window.left = []
-        window._leave = lambda: window.left.append(True)
+        window._leave = lambda: window.left.append(True)  # noqa: SLF001 white-box: stands in for closing the window
         return window
 
     def unsaved(self):
@@ -70,14 +70,14 @@ class TestPuttingTheQuestion:
     def test_replacing_unsaved_work_puts_a_panel_up(self) -> None:
         window = self.context(self.unsaved())
         done = []
-        window._replacing(lambda: done.append(True))
+        window._replacing(lambda: done.append(True))  # noqa: SLF001 white-box: the window's guard, without the window
         assert len(window.pushed) == 1
         assert done == [], 'it went ahead without waiting for an answer'
 
     def test_answering_yes_goes_ahead(self) -> None:
         window = self.context(self.unsaved())
         done = []
-        window._replacing(lambda: done.append(True))
+        window._replacing(lambda: done.append(True))  # noqa: SLF001 white-box: the window's guard, without the window
         panel = window.pushed[0]
         panel.find('yes').activate()
         assert done == [True]
@@ -85,7 +85,7 @@ class TestPuttingTheQuestion:
     def test_answering_no_keeps_the_project(self) -> None:
         window = self.context(self.unsaved())
         done = []
-        window._replacing(lambda: done.append(True))
+        window._replacing(lambda: done.append(True))  # noqa: SLF001 white-box: the window's guard, without the window
         window.pushed[0].find('no').activate()
         assert done == []
 
@@ -94,18 +94,18 @@ class TestPuttingTheQuestion:
         project.save(str(tmp_path / 'circuit.glisteel'))
         window = self.context(project)
         done = []
-        window._replacing(lambda: done.append(True))
+        window._replacing(lambda: done.append(True))  # noqa: SLF001 white-box: the window's guard, without the window
         assert window.pushed == []
         assert done == [True]
 
     def test_leaving_with_unsaved_work_puts_a_panel_up(self) -> None:
         window = self.context(self.unsaved())
-        window._quit()
+        window._quit()  # noqa: SLF001 white-box: the window's guard, without the window
         assert len(window.pushed) == 1
         assert window.left == []
 
     def test_leaving_with_nothing_to_lose_just_leaves(self) -> None:
         window = self.context(new_project())
-        window._quit()
+        window._quit()  # noqa: SLF001 white-box: the window's guard, without the window
         assert window.pushed == []
         assert window.left == [True]

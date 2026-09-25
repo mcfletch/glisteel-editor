@@ -142,5 +142,5 @@ class TestOpeningTheResult:
 class TestTheHelp:
     def test_every_option_says_what_it_does(self) -> None:
         parser = bake.build_parser()
-        for action in parser._actions:
+        for action in parser._actions:  # noqa: SLF001 argparse has no public list of a parser's options
             assert action.help, action.dest

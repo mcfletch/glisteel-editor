@@ -210,7 +210,7 @@ class TestWhatTheManifestSays:
     def test_and_today_where_none_is(self, tmp_path, monkeypatch):
         monkeypatch.delenv('SOURCE_DATE_EPOCH', raising=False)
         assert self.made(['--extent', '1024'], tmp_path).baked == \
-            datetime.date.today().isoformat()
+            datetime.datetime.now().astimezone().date().isoformat()
 
     def test_a_recipe_names_the_track(self, tmp_path):
         path = recipe(tmp_path, 'name = "Beacon"\nextent = 1024\n')

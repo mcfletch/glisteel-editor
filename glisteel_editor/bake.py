@@ -26,7 +26,7 @@ import shutil
 import subprocess
 import sys
 from collections.abc import Callable, Sequence
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from typing import Any
 
 from OpenGLContext import atomicfiles
@@ -231,13 +231,13 @@ def bake_date() -> str:
     """The day a bake records, as ISO ``YYYY-MM-DD``.
 
     ``SOURCE_DATE_EPOCH`` (seconds since 1970, UTC) where it is set, so a
-    release rebuilt from its tag on another day is the same bytes; today
-    otherwise.
+    release rebuilt from its tag on another day is the same bytes; today in
+    local time otherwise.
     """
     given = os.environ.get('SOURCE_DATE_EPOCH', '').strip()  # noqa: TID251 the reproducible-builds date, read when a bake records it
     if given.isdigit():
         return datetime.fromtimestamp(int(given), tz=timezone.utc).date().isoformat()
-    return date.today().isoformat()
+    return datetime.now().astimezone().date().isoformat()
 
 
 

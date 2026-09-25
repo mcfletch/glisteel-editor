@@ -270,7 +270,7 @@ class RouteEditor:
         was none."""
         if not self._past:
             return False
-        self._future.append(self._state())
+        self._future.append(self.state())
         self._restore(self._past.pop())
         return True
 
@@ -278,11 +278,12 @@ class RouteEditor:
         """Do again what was undone. False if nothing was."""
         if not self._future:
             return False
-        self._past.append(self._state())
+        self._past.append(self.state())
         self._restore(self._future.pop())
         return True
 
-    def _state(self) -> RouteState:
+    def state(self) -> RouteState:
+        """The line as it is now: what undo would put back."""
         return RouteState(points=list(self.route.points),
                           closed=bool(self.route.closed),
                           start=int(self.route.start),
@@ -299,7 +300,7 @@ class RouteEditor:
 
     def _remember(self) -> None:
         """Keep the line as it is, and forget any future that is now wrong."""
-        self._past.append(self._state())
+        self._past.append(self.state())
         del self._past[:-self.HISTORY]
         self._future.clear()
 

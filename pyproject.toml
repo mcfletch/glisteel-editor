@@ -93,6 +93,8 @@ select = [
     "RUF100",  # no noqa for a code that is not reported there
     "PLC0415", # imports at the top of the module
     "ARG",     # no unused argument, except one a protocol fixes
+    "SLF001",  # no reaching into another object's private names
+    "DTZ",     # no naive datetimes
     "S102", "S202", "S301", "S307", "S310",  # no exec, eval, pickle, unchecked tar or URL scheme
     "TID251",  # the raw forms the engine has an API for (banned-api, below)
 ]
