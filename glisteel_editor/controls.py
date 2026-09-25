@@ -20,7 +20,7 @@ from typing import Any
 
 import numpy as np
 from OpenGLContext.edit.tools import Pointer, ToolManager
-from OpenGLContext.events.mouseevents import WHEEL_DOWN, WHEEL_UP
+from OpenGLContext.events.mouseevents import WHEEL_BUTTONS, WHEEL_UP
 
 __all__ = ['MapControls']
 
@@ -31,11 +31,6 @@ GRAB_PIXELS = 12.0
 
 #: What a wheel notch does to the scale.
 ZOOM_STEP = 1.25
-
-#: The wheel arrives as a pair of buttons, as it does everywhere in the engine.
-#: Taken from the engine rather than written out here, so the editor and the
-#: views it is drawn in agree about which way a notch went.
-WHEEL_BUTTONS = (WHEEL_UP, WHEEL_DOWN)
 
 
 class MapControls:

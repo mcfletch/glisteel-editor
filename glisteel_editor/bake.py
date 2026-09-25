@@ -26,7 +26,7 @@ import shutil
 import subprocess
 import sys
 from collections.abc import Callable, Sequence
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Any
 
 from OpenGLContext_editor.bake.driver import bake_summary, bake_world
@@ -219,7 +219,20 @@ def describe(world: ProceduralWorld, options: Any, result: Any,
         tileset=os.path.basename(result.tileset),
         seed=world.seed, extent=float(world.extent),
         road_length=float(road.length), structures=carried(road),
-        closed=bool(world.closed), baked=date.today().isoformat())
+        closed=bool(world.closed), baked=bake_date())
+
+
+def bake_date() -> str:
+    """The day a bake records, as ISO ``YYYY-MM-DD``.
+
+    ``SOURCE_DATE_EPOCH`` (seconds since 1970, UTC) where it is set, so a
+    release rebuilt from its tag on another day is the same bytes; today
+    otherwise.
+    """
+    given = os.environ.get('SOURCE_DATE_EPOCH', '').strip()
+    if given.isdigit():
+        return datetime.fromtimestamp(int(given), tz=timezone.utc).date().isoformat()
+    return date.today().isoformat()
 
 
 

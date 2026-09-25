@@ -113,6 +113,18 @@ maximum_bank = 0.02
             settings(['--recipe', path])
         assert 'seed' in str(raised.value)
 
+    def test_a_fraction_for_a_whole_number_is_refused(self, tmp_path) -> None:
+        """Truncated, a depth of 3.7 bakes at 3 and nobody is told."""
+        path = recipe(tmp_path, 'name = "X"\ndepth = 3.7\n')
+        with pytest.raises(bake.BadRecipe) as raised:
+            settings(['--recipe', path])
+        assert 'depth' in str(raised.value)
+
+    def test_but_a_whole_number_written_with_a_point_is_one(self, tmp_path
+                                                           ) -> None:
+        path = recipe(tmp_path, 'name = "X"\nseed = 23.0\n')
+        assert settings(['--recipe', path]).world['seed'] == 23
+
     def test_a_choice_outside_its_choices_is_refused(self, tmp_path) -> None:
         path = recipe(tmp_path, 'name = "X"\nforest = "hedges"\n')
         with pytest.raises(bake.BadRecipe) as raised:
@@ -174,6 +186,18 @@ class TestWhatTheManifestSays:
         from there recorded None."""
         one = self.made(['--extent', '1024'], tmp_path)
         assert one.extent == 1024.0 and one.seed is not None
+
+    def test_the_bake_date_is_the_source_date_where_one_is_given(
+            self, tmp_path, monkeypatch):
+        """A release rebuilt from its tag on another day is the same bytes."""
+        monkeypatch.setenv('SOURCE_DATE_EPOCH', '1700000000')
+        assert self.made(['--extent', '1024'], tmp_path).baked == '2023-11-14'
+
+    def test_and_today_where_none_is(self, tmp_path, monkeypatch):
+        import datetime
+        monkeypatch.delenv('SOURCE_DATE_EPOCH', raising=False)
+        assert self.made(['--extent', '1024'], tmp_path).baked == \
+            datetime.date.today().isoformat()
 
     def test_a_recipe_names_the_track(self, tmp_path):
         path = recipe(tmp_path, 'name = "Beacon"\nextent = 1024\n')

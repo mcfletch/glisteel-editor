@@ -75,6 +75,9 @@ class Setting:
         try:
             if self.kind in (int, float) and isinstance(value, bool):
                 raise TypeError('a boolean is not a number')
+            if self.kind is int and isinstance(value, float) \
+                    and not value.is_integer():
+                raise ValueError('a fraction is not a whole number')
             made = self.kind(value)
         except (TypeError, ValueError) as error:
             raise BadRecipe('%s is %r, which is not %s'
