@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import contextlib
 import json
+import logging
 import os
 import tempfile
 from collections.abc import Sequence
@@ -21,10 +22,13 @@ from dataclasses import dataclass, field, replace
 from typing import Any
 
 import numpy as np
+from OpenGLContext.loaders.documentvalues import DocumentValues
 from OpenGLContext_editor.world.height import HeightSource
 from OpenGLContext_editor.world.hydrology import Channel, Spring, channels_for, flow_from
 
 __all__ = ['Landscape', 'Route', 'Project']
+
+log = logging.getLogger(__name__)
 
 #: What an unsaved project is called until it has a file of its own.
 UNTITLED = 'Untitled'
@@ -112,10 +116,14 @@ class Landscape:
 
     @classmethod
     def from_json(cls, document: dict[str, Any]) -> Landscape:
-        return cls(extent=float(document.get('extent', 2048.0)),
-                   seed=int(document.get('seed', 11)),
-                   resolution=int(document.get('resolution', 33)),
-                   tree_density=float(document.get('treeDensity', 0.004)),
+        values = DocumentValues(logger=log)
+        return cls(extent=values.number(document.get('extent'), 2048.0,
+                                        'landscape extent', minimum=1.0),
+                   seed=values.integer(document.get('seed'), 11, 'landscape seed'),
+                   resolution=values.integer(document.get('resolution'), 33,
+                                             'ground resolution', minimum=2),
+                   tree_density=values.number(document.get('treeDensity'), 0.004,
+                                              'tree density', minimum=0.0),
                    source=HeightSource.from_json(document.get('source', {})),
                    springs=[Spring.from_json(entry)
                             for entry in document.get('springs', ())])
@@ -206,10 +214,13 @@ class Route:
 
     @classmethod
     def from_json(cls, document: dict[str, Any]) -> Route:
+        values = DocumentValues(logger=log)
         return cls(name=str(document.get('name', 'road')),
-                   closed=bool(document.get('closed', True)),
-                   start=int(document.get('start', 0)),
-                   reversed=bool(document.get('reversed', False)),
+                   closed=values.flag(document.get('closed'), True, 'route closed'),
+                   start=values.integer(document.get('start'), 0, 'route start',
+                                        minimum=0),
+                   reversed=values.flag(document.get('reversed'), False,
+                                        'route reversed'),
                    points=[(float(p[0]), float(p[1]))
                            for p in document.get('points', ())])
 
@@ -306,7 +317,8 @@ class Project:
 
     @classmethod
     def from_json(cls, document: dict[str, Any]) -> Project:
-        version = int(document.get('version', 0))
+        version = DocumentValues(logger=log).integer(
+            document.get('version'), 0, 'project file version', minimum=0)
         if version > cls.VERSION:
             raise ValueError(
                 "this track was saved by a newer glisteel-editor (file version "

@@ -372,3 +372,30 @@ class TestOpeningSomethingThatIsNotAProject:
         path.write_text('[1, 2, 3]', encoding='utf-8')
         with pytest.raises(ValueError, match='not a glisteel track'):
             Project.open(str(path))
+
+
+class TestAMalformedFile:
+    """A value the file gets wrong costs that value, reported, not the project."""
+
+    def test_a_flag_written_as_a_word_reads_as_the_word_says(self) -> None:
+        route = Route.from_json({'closed': 'false', 'reversed': 'yes'})
+        assert (route.closed, route.reversed) == (False, True)
+
+    def test_a_number_that_is_not_one_takes_the_default_and_is_reported(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        landscape = Landscape.from_json({'extent': 'wide', 'seed': 'x', 'treeDensity': 'nan'})
+        assert (landscape.extent, landscape.seed, landscape.tree_density) == (2048.0, 11, 0.004)
+        assert 'extent' in caplog.text
+
+    def test_a_number_out_of_range_is_held_to_it(self) -> None:
+        landscape = Landscape.from_json({'extent': -5, 'resolution': 0, 'treeDensity': -1})
+        assert landscape.extent > 0
+        assert landscape.resolution >= 2
+        assert landscape.tree_density == 0.0
+        assert Route.from_json({'start': -3}).start == 0
+
+    def test_a_version_that_is_not_a_number_reads_as_the_first(self) -> None:
+        document = _project().to_json()
+        document['version'] = 'one'
+        assert Project.from_json(document).name == 'Test Circuit'

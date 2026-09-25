@@ -29,6 +29,7 @@ from collections.abc import Callable, Sequence
 from datetime import date, datetime, timezone
 from typing import Any
 
+from OpenGLContext import atomicfiles
 from OpenGLContext_editor.bake.driver import bake_summary, bake_world
 from OpenGLContext_editor.bake.manifest import (
     WorldManifest,
@@ -177,10 +178,14 @@ def split_art(track: str, pack: str) -> list[str]:
                     "meant to be one set of files; two that differ would put "
                     "one track's art under another's tiles."
                     % (here, name, pack))
-            shutil.rmtree(here)
+            atomicfiles.remove_directory(here)
             continue
-        os.makedirs(pack, exist_ok=True)
-        shutil.move(here, there)
+        # Copied into a staged directory rather than renamed, since the pack
+        # may be on another filesystem: an interrupted split leaves the pack
+        # without this directory, never with part of it.
+        with atomicfiles.staged_directory(there) as staging:
+            shutil.copytree(here, staging, dirs_exist_ok=True)
+        atomicfiles.remove_directory(here)
         moved.append(name)
     return moved
 
@@ -229,7 +234,7 @@ def bake_date() -> str:
     release rebuilt from its tag on another day is the same bytes; today
     otherwise.
     """
-    given = os.environ.get('SOURCE_DATE_EPOCH', '').strip()
+    given = os.environ.get('SOURCE_DATE_EPOCH', '').strip()  # noqa: TID251 the reproducible-builds date, read when a bake records it
     if given.isdigit():
         return datetime.fromtimestamp(int(given), tz=timezone.utc).date().isoformat()
     return date.today().isoformat()
