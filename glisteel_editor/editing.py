@@ -389,7 +389,7 @@ class RouteTool(ToolMode):
         self.editor.move(self._dragging, pointer.world, self._snapping)
         return True
 
-    def on_release(self, pointer: Pointer) -> bool:
+    def on_release(self, pointer: Pointer) -> bool:  # noqa: ARG002 ToolMode.on_release
         taken = self._dragging is not None
         if taken:
             self.editor.end_step()
@@ -397,7 +397,7 @@ class RouteTool(ToolMode):
         self._was = None
         return taken
 
-    def on_key(self, name: str, modifiers: tuple[int, int, int]) -> bool:
+    def on_key(self, name: str, modifiers: tuple[int, int, int]) -> bool:  # noqa: ARG002 ToolMode.on_key
         if name in ('<delete>', '<backspace>') and self.editor.hovered is not None:
             self.editor.remove(self.editor.hovered)
             return True

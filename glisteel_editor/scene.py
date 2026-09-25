@@ -378,8 +378,7 @@ class MapScene:
 
         Answers whether anything changed, so a caller knows to rebuild.
         """
-        if self._patch is not None and self._patch.serves(
-                centre, span, viewport, self.project.landscape.extent):
+        if self._patch is not None and self._patch.serves(centre, span, viewport):
             return False
         self._patch = patch_for(centre, span, viewport,
                                 self.project.landscape.extent)

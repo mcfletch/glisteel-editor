@@ -189,7 +189,7 @@ class WaterTool(ToolMode):
         self.editor.move(self._dragging, pointer.world)
         return True
 
-    def on_release(self, pointer: Pointer) -> bool:
+    def on_release(self, pointer: Pointer) -> bool:  # noqa: ARG002 ToolMode.on_release
         taken = self._dragging is not None
         if taken:
             self.editor.end_step()

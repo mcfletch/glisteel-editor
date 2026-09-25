@@ -134,7 +134,7 @@ class TestOpeningTheResult:
         assert called['command'][1].endswith('tileset.json')
 
     def test_a_missing_viewer_is_reported(self, tmp_path, monkeypatch, capsys) -> None:
-        monkeypatch.setattr(bake.shutil, 'which', lambda name: None)
+        monkeypatch.setattr(bake.shutil, 'which', lambda _name: None)
         assert _run(tmp_path, '--quiet', '--view') == 1
         assert 'oglc-view' in capsys.readouterr().err
 

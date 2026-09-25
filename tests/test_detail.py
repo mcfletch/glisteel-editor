@@ -83,30 +83,30 @@ class TestHowFinely:
 class TestWhenToDoItAgain:
     def test_the_same_view_wants_the_same_patch(self) -> None:
         patch = _patch(span=400.0)
-        assert patch.serves((0.0, 0.0), 400.0, VIEWPORT, EXTENT)
+        assert patch.serves((0.0, 0.0), 400.0, VIEWPORT)
 
     def test_a_small_pan_is_still_served(self) -> None:
         patch = _patch(span=400.0)
-        assert patch.serves((20.0, 20.0), 400.0, VIEWPORT, EXTENT)
+        assert patch.serves((20.0, 20.0), 400.0, VIEWPORT)
 
     def test_panning_off_the_edge_of_it_is_not(self) -> None:
         patch = _patch(span=400.0)
-        assert not patch.serves((3000.0, 0.0), 400.0, VIEWPORT, EXTENT)
+        assert not patch.serves((3000.0, 0.0), 400.0, VIEWPORT)
 
     def test_a_small_zoom_is_still_served(self) -> None:
         """Or every wheel notch re-meshes the landscape."""
         patch = _patch(span=400.0)
-        assert patch.serves((0.0, 0.0), 380.0, VIEWPORT, EXTENT)
+        assert patch.serves((0.0, 0.0), 380.0, VIEWPORT)
 
     def test_zooming_right_in_is_not(self) -> None:
         patch = _patch(span=400.0)
-        assert not patch.serves((0.0, 0.0), 40.0, VIEWPORT, EXTENT)
+        assert not patch.serves((0.0, 0.0), 40.0, VIEWPORT)
 
     def test_zooming_right_out_is_not(self) -> None:
         patch = _patch(span=400.0)
-        assert not patch.serves((0.0, 0.0), 4000.0, VIEWPORT, EXTENT)
+        assert not patch.serves((0.0, 0.0), 4000.0, VIEWPORT)
 
     def test_a_patch_covering_the_whole_landscape_serves_a_zoom_out(self) -> None:
         """There is nothing coarser to go to, so it must not thrash."""
         patch = _patch(span=EXTENT)
-        assert patch.serves((0.0, 0.0), EXTENT * 3, VIEWPORT, EXTENT)
+        assert patch.serves((0.0, 0.0), EXTENT * 3, VIEWPORT)

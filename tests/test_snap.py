@@ -12,7 +12,7 @@ from support import pointer_at as _at
 from glisteel_editor.editing import RouteEditor, RouteTool
 
 
-def _ramp(x, z):
+def _ramp(x, _z):
     """Ground rising one in ten towards the east."""
     return np.asarray(x, dtype='d') * 0.1
 

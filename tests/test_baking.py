@@ -142,7 +142,7 @@ class TestWhereTheLapBegins:
         _result, document = _bake(project, str(tmp_path / 'world'), depth=1)
         assert document['extras']['roads'][0]['start'] > 0.0
 
-    def test_a_circuit_turned_round_is_a_different_line(self, tmp_path) -> None:
+    def test_a_circuit_turned_round_is_a_different_line(self) -> None:
         project = _drawn()
         forward = project.world().circuit().points.copy()
         project.route().reversed = True

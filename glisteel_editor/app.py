@@ -421,7 +421,7 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         self.chrome.reserved = room
         self.overlays.invalidate()
 
-    def OnIdle(self, *args: Any) -> int:
+    def OnIdle(self, *args: Any) -> int:  # noqa: ARG002 Context.OnIdle's signature; the arguments are the backend's
         """Between frames: put right whatever an edit or a resize left stale."""
         # Water flows: the surfaces are on the card and this is the one number
         # they are drawn from, so it costs a uniform a frame.
@@ -485,27 +485,27 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         self._stale = True
         self._report()
 
-    def _tool_changed(self, tool: Any) -> None:
+    def _tool_changed(self, _tool: Any) -> None:
         """A different tool has the pointer: say so, and light its button."""
         self._report()
         self.triggerRedraw(1)
 
-    def _frame_all(self, event: Any = None) -> None:
+    def _frame_all(self, _event: Any = None) -> None:
         minimum, maximum = self.project.bounds()
         frame_landscape(self.views, minimum, maximum, self.scene.relief())
         self._map_moved()
 
     # -- which views are up -------------------------------------------------
-    def _toggle_view(self, event: Any = None) -> None:
+    def _toggle_view(self, _event: Any = None) -> None:
         """Swap between the map and the three-quarter view."""
         self._show_views('map' if self.perspective else 'angled')
 
-    def _next_layout(self, event: Any = None) -> None:
+    def _next_layout(self, _event: Any = None) -> None:
         """Take the arrangements in turn, so one key reaches all of them."""
         self._show_views(LAYOUTS[(LAYOUTS.index(self.views.mode) + 1)
                                  % len(LAYOUTS)])
 
-    def _maximise(self, event: Any = None) -> None:
+    def _maximise(self, _event: Any = None) -> None:
         """Give the view under the last click the whole window, or give it back."""
         self.views.maximise()
         self._views_arranged()
@@ -565,43 +565,43 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
     def _menus(self) -> list:
         return [
             ('File', [
-                MenuItem(text='New', on_activate=lambda w: self._new()),
+                MenuItem(text='New', on_activate=lambda _: self._new()),
                 MenuItem(text='Open...', shortcut='<ctrl-o>',
-                         on_activate=lambda w: self._open()),
+                         on_activate=lambda _: self._open()),
                 MenuItem(text='Save', shortcut='<ctrl-s>',
-                         on_activate=lambda w: self._save()),
+                         on_activate=lambda _: self._save()),
                 Separator(),
                 MenuItem(text='Bake a world', shortcut='<ctrl-b>',
-                         on_activate=lambda w: self._bake()),
+                         on_activate=lambda _: self._bake()),
                 MenuItem(text='Drive it', shortcut='<ctrl-d>',
-                         on_activate=lambda w: self._drive()),
+                         on_activate=lambda _: self._drive()),
                 Separator(),
-                MenuItem(text='Quit', on_activate=lambda w: self._quit()),
+                MenuItem(text='Quit', on_activate=lambda _: self._quit()),
             ]),
             ('Edit', [
                 MenuItem(text='Undo', shortcut='<ctrl-z>',
-                         on_activate=lambda w: self._undo()),
+                         on_activate=lambda _: self._undo()),
                 MenuItem(text='Redo', shortcut='<ctrl-y>',
-                         on_activate=lambda w: self._redo()),
+                         on_activate=lambda _: self._redo()),
             ]),
             ('Route', [
                 MenuItem(text='Closed circuit', checkable=True,
                          checked=bool(self._route().closed),
                          on_activate=lambda w: self.editor.close_route(w.checked)),
-                MenuItem(text='Clear', on_activate=lambda w: self._clear()),
+                MenuItem(text='Clear', on_activate=lambda _: self._clear()),
             ]),
             ('Terrain', self._terrain_items()),
             ('View', [
                 *self._layout_items(),
                 MenuItem(text='Maximise this view (space)',
-                         on_activate=lambda w: self._maximise()),
+                         on_activate=lambda _: self._maximise()),
                 Separator(),
                 MenuItem(text='Frame the landscape', shortcut='f',
-                         on_activate=lambda w: self._frame_all()),
+                         on_activate=lambda _: self._frame_all()),
                 MenuItem(text='Zoom in',
-                         on_activate=lambda w: self.controls.zoom(1.0 / ZOOM_STEP)),
+                         on_activate=lambda _: self.controls.zoom(1.0 / ZOOM_STEP)),
                 MenuItem(text='Zoom out',
-                         on_activate=lambda w: self.controls.zoom(ZOOM_STEP)),
+                         on_activate=lambda _: self.controls.zoom(ZOOM_STEP)),
                 Separator(),
                 MenuItem(text='Shaded relief', checkable=True,
                          checked=self.view_options['hillshade'],
@@ -619,7 +619,7 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
     def _layout_items(self) -> list:
         """The arrangements of views, one item each, ticked where it is up."""
         def choose(name: str) -> Any:
-            return lambda widget: self._show_views(name)
+            return lambda _: self._show_views(name)
 
         return [MenuItem(text=text, shortcut=shortcut, checkable=True,
                          checked=(name == self.views.mode),
@@ -633,7 +633,7 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
                           checked=(name == self._preset_name()))
                  for name in names]
         for item, name in zip(items, names, strict=True):
-            item.on_activate = (lambda widget, name=name, items=items,
+            item.on_activate = (lambda _, name=name, items=items,
                                 names=names: self._choose_terrain(name, items,
                                                                   names))
         return items
@@ -667,7 +667,7 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
                           checked=(metres == chosen))
                  for metres in CONTOUR_INTERVALS]
         for item, metres in zip(items, CONTOUR_INTERVALS, strict=True):
-            item.on_activate = (lambda widget, metres=metres:
+            item.on_activate = (lambda _, metres=metres:
                                 self._choose_interval(metres))
         #: Kept so a landscape that chooses its own spacing can tick it.
         self._interval_menu = items

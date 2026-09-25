@@ -79,7 +79,7 @@ class GroundPatch:
                     and self.maximum[1] >= centre[1] + half)
 
     def serves(self, centre: tuple[float, float], span: float,
-               viewport: tuple[int, int], extent: float) -> bool:
+               viewport: tuple[int, int]) -> bool:
         """Whether this patch is still the right one for a view.
 
         It is when the view is inside it *and* the scale has not moved more

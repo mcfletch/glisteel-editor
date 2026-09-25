@@ -79,7 +79,7 @@ class TestWhereThePointerIs:
         editor = RouteEditor(route)
         tools = ToolManager([RouteTool(editor=editor)])
         controls = MapControls(MapView(span=600.0), tools, lambda: VIEWPORT,
-                               height_at=lambda x, z: 42.0)
+                               height_at=lambda _x, _z: 42.0)
         assert float(controls.pointer(_Event(400, 300)).world[1]) == 42.0
 
     def test_it_carries_the_button(self) -> None:

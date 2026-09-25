@@ -53,7 +53,7 @@ class MapControls:
         #: against is measured from its own corner.
         self.locate = locate or (lambda x, y: (float(x), float(y)))
         #: The ground under a map position, for tools that want a 3D point.
-        self.height_at = height_at or (lambda x, z: 0.0)
+        self.height_at = height_at or (lambda _x, _z: 0.0)
         #: The route editor whose reach is kept in step with the zoom.
         self.editor = editor
         #: Called when the map moved, and when a gesture finished.

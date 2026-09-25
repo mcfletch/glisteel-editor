@@ -202,11 +202,11 @@ class SculptTool(ToolMode):
         self.editor.move(pointer.world, lower=self._lowering)
         return True
 
-    def on_release(self, pointer: Pointer) -> bool:
+    def on_release(self, pointer: Pointer) -> bool:  # noqa: ARG002 ToolMode.on_release
         taken, self._working = self._working, False
         return taken
 
-    def on_key(self, name: str, modifiers: tuple[int, int, int]) -> bool:
+    def on_key(self, name: str, modifiers: tuple[int, int, int]) -> bool:  # noqa: ARG002 ToolMode.on_key
         if name == ']':
             self.editor.press_harder(1)
             return True
@@ -215,7 +215,7 @@ class SculptTool(ToolMode):
             return True
         return False
 
-    def on_wheel(self, pointer: Pointer, notches: int) -> bool:
+    def on_wheel(self, pointer: Pointer, notches: int) -> bool:  # noqa: ARG002 ToolMode.on_wheel
         """The wheel sizes the brush rather than the map.
 
         A designer sculpting is choosing how much ground a stroke covers far
