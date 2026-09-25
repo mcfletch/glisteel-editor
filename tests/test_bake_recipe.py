@@ -53,6 +53,20 @@ class TestTheKnobsThatReachTheWorld:
         """A hill climb has a start and a finish rather than a lap."""
         assert settings(['--open']).world['closed'] is False
 
+    def test_every_setting_the_world_declares_is_offered(self) -> None:
+        """The world says what it can be told; the recipe offers all of it,
+        so a parameter added there needs nothing added here."""
+        from OpenGLContext_editor.world.procedural import ProceduralWorld
+
+        from glisteel_editor import recipe as recipes
+        declared = [one.name for one in ProceduralWorld.SETTINGS]
+        assert [one.name for one in recipes.WORLD_SETTINGS] == declared
+        for one, source in zip(recipes.WORLD_SETTINGS,
+                               ProceduralWorld.SETTINGS, strict=True):
+            assert one.help.startswith(source.help)
+            assert one.kind is source.kind
+            assert one.choices == source.choices
+
     def test_what_is_not_named_is_left_to_the_world(self) -> None:
         """Absent means the world's own default, not a value repeated here."""
         assert 'water_level' not in settings([]).world

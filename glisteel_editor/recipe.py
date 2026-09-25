@@ -1,9 +1,10 @@
 """What a track is made of, declared once and read from two places.
 
 :class:`~OpenGLContext_editor.world.procedural.ProceduralWorld` takes about
-twenty parameters, and a command line that passes six can only bake seeds of one
-idea. :data:`WORLD_SETTINGS` names the rest, so ``glisteel-bake`` offers them
-and a **recipe** -- a TOML file committed beside the code -- can name them too.
+twenty parameters and declares the ones a recipe may set
+(``ProceduralWorld.SETTINGS``). :data:`WORLD_SETTINGS` is that table as
+``glisteel-bake`` offers it, so a recipe -- a TOML file committed beside the
+code -- can name them too.
 
 A recipe is what makes a released track something that can be rebuilt from the
 tag that produced it, rather than from a command somebody remembers typing::
@@ -89,46 +90,32 @@ class Setting:
         return made
 
 
+#: How a boolean setting is spelled on the command line, where the flag turns
+#: it off. The rest are ``--no-<name>``.
+_SWITCHES = {'closed': '--open'}
+
+
+def _offered(declared: Any) -> Setting:
+    """One of the world's own settings as a recipe and a command line take it."""
+    if declared.kind is not bool:
+        return Setting(declared.name, declared.kind, declared.help,
+                       choices=declared.choices)
+    switch = _SWITCHES.get(declared.name,
+                           '--no-%s' % (declared.name.replace('_', '-'),))
+    return Setting(declared.name, bool, declared.help, switch=switch,
+                   flag_to=False)
+
+
+def _world_settings() -> tuple[Setting, ...]:
+    """What the world is: everything that changes the place being driven
+    through, as :class:`ProceduralWorld` declares it
+    (:attr:`~OpenGLContext_editor.world.procedural.ProceduralWorld.SETTINGS`)."""
+    from OpenGLContext_editor.world.procedural import ProceduralWorld
+    return tuple(_offered(one) for one in ProceduralWorld.SETTINGS)
+
+
 #: What the world is: everything that changes the place being driven through.
-WORLD_SETTINGS: tuple[Setting, ...] = (
-    Setting('extent', float, 'the world is this many metres across'),
-    Setting('resolution', int, 'ground samples across each tile'),
-    Setting('seed', int, 'the world is the same every bake for a given seed'),
-    Setting('ground', str, 'how the landscape is carried: one splat terrain '
-            'beside the tileset, or meshed into the tiles',
-            choices=('field', 'tiles')),
-    Setting('forest', str, 'how the trees are carried: one table beside the '
-            'tileset, or instanced into the tiles',
-            choices=('field', 'tiles')),
-    Setting('tree_density', float, 'trees per square metre'),
-    Setting('tree_height', float, 'how tall a full-grown tree is, in metres'),
-    Setting('field_resolution', int, "samples across the field's height grid"),
-    Setting('control_size', int, 'pixels across the splat control map'),
-    Setting('water_level', float,
-            'where the water sits, in metres. Raise it to flood the valleys: '
-            'the circuit goes onto causeways between islands, the forest and '
-            'the boulders start above it, and the shore is painted round the '
-            'new coast'),
-    Setting('relief', float, 'how tall the hills are, against the shipped '
-            "landscape's own; 0 is flat, higher is alpine"),
-    Setting('maximum_bank', float, 'how far the corners lean, as a fraction. '
-            '0 lays the circuit flat; the ceiling makes it an oval'),
-    Setting('variety', float, 'how unlike each other the corners and straights '
-            'are, 0 to 1. 0 is one figure for everything'),
-    Setting('posted', int, 'the speed the circuit is signed at, in km/h; '
-            '0 leaves it unposted'),
-    Setting('structures', bool, 'build viaducts and bores where the earthworks '
-            'would be huge', switch='--no-structures', flag_to=False),
-    Setting('road', bool, 'lay a circuit on the landscape at all',
-            switch='--no-road', flag_to=False),
-    Setting('closed', bool, 'a lap rather than a point-to-point run; --open '
-            'gives a hill climb, with a start and a finish',
-            switch='--open', flag_to=False),
-    Setting('places', bool, 'give every bore, causeway, bridge and stretch of '
-            'forest a zone: lit by an environment captured in it, and heard '
-            'with its own birdsong, surf or echo',
-            switch='--no-places', flag_to=False),
-)
+WORLD_SETTINGS: tuple[Setting, ...] = _world_settings()
 
 #: What the *bake* is: how the world is cut up, not what it is.
 BAKE_SETTINGS: tuple[Setting, ...] = (
