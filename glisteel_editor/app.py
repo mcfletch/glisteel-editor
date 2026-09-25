@@ -118,6 +118,14 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
     #: scenegraph node is a described thing whose fields are its contents.
     _content: Any = None
 
+    def _drivingCamera(self) -> ViewPlatform:
+        """The map's camera while the map is showing, else the angled one."""
+        view = (self.mapView if self.views.showing(self.mapView)
+                else self.angledView)
+        camera = view.camera
+        assert isinstance(camera, ViewPlatform), camera
+        return camera
+
     def OnInit(self) -> None:
         self.project = self.config.project
         #: How the land is read, which follows the project rather than being
@@ -149,9 +157,7 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         # whatever is around the origin.
         low, high = self.project.bounds()
         frame_landscape(self.views, low, high, self.scene.relief())
-        self.platform = (self.mapView.camera
-                         if self.views.showing(self.mapView)
-                         else self.angledView.camera)
+        self.platform = self._drivingCamera()
         self.editor = RouteEditor(
             self._route(), on_change=self._route_changed,
             height_fn=lambda x, z: self.scene.world().natural()(x, z),
@@ -540,9 +546,7 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         self.viewLayout = self.views.layout
         self.chrome.layout_of = self.views.layout
         self.overlays.invalidate()
-        self.platform = (self.mapView.camera
-                         if self.views.showing(self.mapView)
-                         else self.angledView.camera)
+        self.platform = self._drivingCamera()
         self._checkLayoutMenu()
         self._stale = True
         self._report()
