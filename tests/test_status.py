@@ -75,7 +75,6 @@ class TestWhatTheLineCosts:
     is."""
 
     def _status(self):
-        from glisteel_editor.status import EditorStatus
         return EditorStatus()
 
     def test_a_plain_road_says_only_its_length(self) -> None:

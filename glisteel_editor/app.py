@@ -30,8 +30,12 @@ from __future__ import annotations
 
 import argparse
 import logging
+import math
 import os
+import shutil
+import subprocess
 import sys
+import time
 from typing import Any
 
 # The engine reads these at import time, so they are set before it is imported.
@@ -51,10 +55,12 @@ from OpenGLContext.ui.viewchrome import ViewChrome
 from OpenGLContext.ui.widgets import Separator
 from OpenGLContext.viewer import environment
 from OpenGLContext.viewer.sceneviewer import ViewerContext
+from OpenGLContext_editor.world.dem import DEMBase
+from OpenGLContext_editor.world.presets import PRESETS, PresetBase
 
 from glisteel_editor.controls import ZOOM_STEP, MapControls
 from glisteel_editor.editing import RouteEditor, editor_tools
-from glisteel_editor.project import Project, new_project
+from glisteel_editor.project import Project, Route, new_project
 from glisteel_editor.scene import (
     CONTOUR_INTERVAL,
     CONTOUR_INTERVALS_OFFERED,
@@ -179,8 +185,7 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         self._dirty_road = False
         #: When this window opened, so the water's clock starts at zero rather
         #: than at whenever the machine was switched on.
-        import time as _time
-        self._opened = _time.monotonic()
+        self._opened = time.monotonic()
         #: Whether a stroke of the brush is waiting to be built into the scene.
         self._dirty_land = False
         #: Whether what is on screen is out of date with the project.
@@ -241,7 +246,6 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
     def _route(self) -> Any:
         route = self.project.route()
         if route is None:
-            from glisteel_editor.project import Route
             route = Route(name='circuit')
             self.project.routes.append(route)
         return route
@@ -354,7 +358,6 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         """
         if not self.perspective:
             return float(self.view.span)
-        import math
         return 2.0 * float(self.orbit.distance) * math.tan(
             math.radians(self.orbit.fov) / 2.0)
 
@@ -422,8 +425,7 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         """Between frames: put right whatever an edit or a resize left stale."""
         # Water flows: the surfaces are on the card and this is the one number
         # they are drawn from, so it costs a uniform a frame.
-        import time as _time
-        if self.scene.advance(_time.monotonic() - self._opened):
+        if self.scene.advance(time.monotonic() - self._opened):
             self.triggerRedraw(1)
         metrics = self.overlayMetrics()
         if metrics is not None and float(metrics.scale) != self._reserved_at:
@@ -626,7 +628,6 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
 
     def _terrain_items(self) -> list:
         """The landscapes a track can be cut into, and which one it is on."""
-        from OpenGLContext_editor.world.presets import PRESETS
         names = list(PRESETS)
         items = [MenuItem(text=PRESETS[name].label, checkable=True,
                           checked=(name == self._preset_name()))
@@ -649,7 +650,6 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         ground -- the alignment, the earthworks, the structures -- is rebuilt,
         because all of it was an answer about the old one.
         """
-        from OpenGLContext_editor.world.presets import PRESETS, PresetBase
         for item, offered in zip(items, names, strict=True):
             item.checked = (offered == name)
         self.project.landscape.source.base = PresetBase(name=name)
@@ -811,8 +811,6 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         if not os.path.exists(tileset):
             self._say("Bake a world first (File -> Bake a world).")
             return
-        import shutil
-        import subprocess
         command = shutil.which('glisteel')
         if command is None:
             self._say("glisteel is not installed: pip install glisteel")
@@ -861,7 +859,6 @@ def bake_directory(project: Any) -> str:
 
 
 def _preset_names() -> list[str]:
-    from OpenGLContext_editor.world.presets import PRESETS
     return list(PRESETS)
 
 
@@ -873,7 +870,6 @@ def terrain_base(options: Any) -> Any:
     gets the shipped landscape.
     """
     if getattr(options, 'dem', None):
-        from OpenGLContext_editor.world.dem import DEMBase
         if not options.centre:
             raise SystemExit(
                 "--dem needs --centre LAT,LONG to say where on the Earth the "
@@ -883,7 +879,6 @@ def terrain_base(options: Any) -> Any:
         return DEMBase(path=options.dem, centre=(latitude, longitude),
                        datum=float(getattr(options, 'datum', 0.0) or 0.0))
     if getattr(options, 'terrain', None):
-        from OpenGLContext_editor.world.presets import PRESETS, PresetBase
         if options.terrain not in PRESETS:
             raise SystemExit(
                 "there is no landscape called %r; the ones there are: %s"

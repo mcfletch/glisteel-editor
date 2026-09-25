@@ -4,12 +4,21 @@ Headless. Building geometry is arithmetic over a height function and a list of
 points, so what a scene *is* can be asserted without drawing it: how many nodes,
 where they are, and that they change when the project does.
 """
+import math
+
 import numpy as np
 import pytest
 import support
+from OpenGLContext.scenegraph.basenodes import IndexedLineSet
+from OpenGLContext.scenegraph.shape import Shape
+from OpenGLContext.scenegraph.transform import Transform
+from OpenGLContext_editor.world.contours import contour_levels, contours_of
+from OpenGLContext_editor.world.hydrology import Spring
+from OpenGLContext_editor.world.presets import PresetBase
 
-from glisteel_editor.project import Landscape, Project, Route
-from glisteel_editor.scene import MapScene
+from glisteel_editor.app import CONTOUR_INTERVALS
+from glisteel_editor.project import Landscape, Project, Route, new_project
+from glisteel_editor.scene import STRUCTURE_COLOURS, STRUCTURE_WIDTH, MapScene
 
 
 def _project(points=((-400.0, -300.0), (400.0, -300.0), (400.0, 300.0),
@@ -24,7 +33,6 @@ def _scene(project=None, **named):
 
 def _positions(node):
     """Every vertex a node's subtree holds, in its own coordinates."""
-    from OpenGLContext.scenegraph.shape import Shape
     found = []
     stack = [node]
     while stack:
@@ -192,10 +200,6 @@ class TestWhereTheRoadIsCarried:
     is carried is the most expensive decision the line makes."""
 
     def _scene(self, radius=520.0, points=14):
-        import math
-
-        from glisteel_editor.project import Landscape
-        from glisteel_editor.scene import MapScene
         plan = [(radius * math.cos(2 * math.pi * i / points),
                  radius * 0.75 * math.sin(2 * math.pi * i / points))
                 for i in range(points)]
@@ -211,15 +215,12 @@ class TestWhereTheRoadIsCarried:
         assert found is not None
 
     def test_a_line_too_short_to_be_a_road_has_none(self) -> None:
-        from glisteel_editor.project import Landscape
-        from glisteel_editor.scene import MapScene
         project = Project(name='x', landscape=Landscape(extent=1024.0),
                           routes=[Route(name='c', points=[(0.0, 0.0)])])
         assert MapScene(project).structures() is None
 
     def test_each_kind_has_its_own_colour(self) -> None:
         """A deck and a bore are two different things to a designer."""
-        from glisteel_editor.scene import STRUCTURE_COLOURS
         scene = self._scene()
         mesh = scene.structures().geometry
         colours = {tuple(round(float(v), 3) for v in one[:3])
@@ -230,7 +231,6 @@ class TestWhereTheRoadIsCarried:
 
     def test_they_are_wide_enough_to_see_at_map_scale(self) -> None:
         """A road drawn at a kilometre a screen is a hairline."""
-        from glisteel_editor.scene import STRUCTURE_WIDTH
         scene = self._scene()
         assert STRUCTURE_WIDTH > 1.0
         assert len(scene.structures().geometry.positions) > 8
@@ -246,8 +246,6 @@ class TestWhereTheRoadIsCarried:
         assert set(counts) <= {'bridge', 'tunnel', 'causeway'}
 
     def test_a_flat_route_reports_none(self) -> None:
-        from glisteel_editor.project import Landscape
-        from glisteel_editor.scene import MapScene
         project = Project(name='x', landscape=Landscape(extent=1024.0),
                           routes=[Route(name='c', points=[(0.0, 0.0)])])
         assert MapScene(project).structure_counts() == {}
@@ -341,15 +339,12 @@ class TestTheContours:
 
 def _contour_levels(scene):
     """The elevations a scene's contours are drawn for, in order."""
-    from OpenGLContext_editor.world.contours import contours_of
     return sorted(contour.elevation for contour in contours_of(
         scene.world().natural(), extent=scene.project.landscape.extent,
         interval=scene.contour_interval, resolution=257))
 
 
 def _positions_of_lines(node):
-    from OpenGLContext.scenegraph.basenodes import IndexedLineSet
-    from OpenGLContext.scenegraph.shape import Shape
     found = []
     stack = [node]
     while stack:
@@ -369,9 +364,6 @@ class TestHowCloselyToDescribeTheLand:
     """A contour interval that suits rolling hills hatches a mountain range."""
 
     def _scene_on(self, name):
-        from OpenGLContext_editor.world.presets import PresetBase
-
-        from glisteel_editor.project import new_project
         project = new_project(extent=4096.0, base=PresetBase(name=name))
         return MapScene(project, resolution=33)
 
@@ -380,12 +372,10 @@ class TestHowCloselyToDescribeTheLand:
             > self._scene_on('hills').suggested_interval()
 
     def test_the_answer_is_one_a_designer_can_also_choose(self) -> None:
-        from glisteel_editor.app import CONTOUR_INTERVALS
         for name in ('mountains', 'canyon', 'lakes', 'hills'):
             assert self._scene_on(name).suggested_interval() in CONTOUR_INTERVALS
 
     def test_no_landscape_is_described_by_more_lines_than_can_be_read(self) -> None:
-        from OpenGLContext_editor.world.contours import contour_levels
         for name in ('mountains', 'canyon', 'lakes', 'hills'):
             scene = self._scene_on(name)
             low, high = scene.relief()
@@ -437,7 +427,6 @@ class TestTheBrush:
 
 class TestTheWater:
     def _watered(self):
-        from OpenGLContext_editor.world.hydrology import Spring
         project = _project()
         project.landscape.springs.append(Spring(at=(-800.0, 700.0)))
         return MapScene(project, resolution=33)
@@ -476,7 +465,6 @@ class TestTheWater:
         assert material.baseColor[2] > material.baseColor[0]
 
     def test_the_spring_is_marked_where_it_was_put(self) -> None:
-        from OpenGLContext.scenegraph.transform import Transform
         scene = self._watered()
         marks = [np.asarray(node.translation, 'd')
                  for node in scene.water().children
@@ -495,7 +483,6 @@ class TestTheWater:
         assert scene.water() is scene.water()
 
     def test_a_new_spring_redraws_it(self) -> None:
-        from OpenGLContext_editor.world.hydrology import Spring
         scene = self._watered()
         before = scene.water()
         scene.project.landscape.springs.append(Spring(at=(-700.0, 640.0)))

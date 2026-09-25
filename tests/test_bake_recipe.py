@@ -6,9 +6,13 @@ the rest, is committed beside the code, and makes a released track something
 that can be rebuilt from the tag that produced it.
 """
 
+import datetime
+
 import pytest
+from OpenGLContext_editor.world.procedural import ProceduralWorld
 
 from glisteel_editor import bake
+from glisteel_editor import recipe as recipes
 
 
 def recipe(tmp_path, text, name='track.toml'):
@@ -56,9 +60,6 @@ class TestTheKnobsThatReachTheWorld:
     def test_every_setting_the_world_declares_is_offered(self) -> None:
         """The world says what it can be told; the recipe offers all of it,
         so a parameter added there needs nothing added here."""
-        from OpenGLContext_editor.world.procedural import ProceduralWorld
-
-        from glisteel_editor import recipe as recipes
         declared = [one.name for one in ProceduralWorld.SETTINGS]
         assert [one.name for one in recipes.WORLD_SETTINGS] == declared
         for one, source in zip(recipes.WORLD_SETTINGS,
@@ -168,7 +169,6 @@ class TestTheWorldItBuilds:
 
     def test_the_default_world_is_the_one_it_has_always_been(self) -> None:
         """Nothing here changes what a bake with no arguments produces."""
-        from OpenGLContext_editor.world.procedural import ProceduralWorld
         made, stock = bake.world_for(settings([])), ProceduralWorld()
         for field in ('extent', 'resolution', 'seed', 'ground', 'forest',
                       'water_level', 'relief', 'maximum_bank', 'variety',
@@ -208,7 +208,6 @@ class TestWhatTheManifestSays:
         assert self.made(['--extent', '1024'], tmp_path).baked == '2023-11-14'
 
     def test_and_today_where_none_is(self, tmp_path, monkeypatch):
-        import datetime
         monkeypatch.delenv('SOURCE_DATE_EPOCH', raising=False)
         assert self.made(['--extent', '1024'], tmp_path).baked == \
             datetime.date.today().isoformat()

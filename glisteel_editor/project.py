@@ -23,8 +23,10 @@ from typing import Any
 
 import numpy as np
 from OpenGLContext.loaders.documentvalues import DocumentValues
+from OpenGLContext.loaders.tiles3d.procedural import WATER_LEVEL
 from OpenGLContext_editor.world.height import HeightSource
 from OpenGLContext_editor.world.hydrology import Channel, Spring, channels_for, flow_from
+from OpenGLContext_editor.world.procedural import ProceduralWorld
 
 __all__ = ['Landscape', 'Route', 'Project']
 
@@ -102,7 +104,6 @@ class Landscape:
     def _cut_rivers(self) -> list[Channel]:
         if not self.springs:
             return []
-        from OpenGLContext.loaders.tiles3d.procedural import WATER_LEVEL
         paths = flow_from(self.source.height_fn(), self.springs,
                           extent=self.extent, water_level=WATER_LEVEL)
         return channels_for(paths)
@@ -277,7 +278,6 @@ class Project:
         answering about the line as it used to be. ``depth`` is the depth of
         the tile tree it is laid out for.
         """
-        from OpenGLContext_editor.world.procedural import ProceduralWorld
         route = self.route()
         drivable = route is not None and route.is_road()
         return ProceduralWorld(

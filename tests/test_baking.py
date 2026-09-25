@@ -11,6 +11,10 @@ import os
 import numpy as np
 import pytest
 import support
+from OpenGLContext.loaders.tiles3d.procedural import terrain_height
+from OpenGLContext_editor.bake.driver import bake_world
+from OpenGLContext_editor.world.hydrology import Spring
+from OpenGLContext_editor.world.procedural import CREDITS
 
 #: Every test here bakes, and a bake is seconds rather than milliseconds. They
 #: are marked so that a working loop can be ``-m "not slow"`` and a full run is
@@ -31,7 +35,6 @@ def _drawn():
 
 
 def _bake(project, directory, depth=2, **named):
-    from OpenGLContext_editor.bake.driver import bake_world
     result = bake_world(project.world().layers(), directory, depth=depth,
                         **named)
     with open(result.tileset) as handle:
@@ -41,7 +44,6 @@ def _bake(project, directory, depth=2, **named):
 @pytest.fixture(scope='module')
 def baked(tmp_path_factory):
     """One bake, shared: it is seconds of work and nothing here changes it."""
-    from OpenGLContext_editor.world.procedural import CREDITS
     project = _drawn()
     result, document = _bake(project, str(tmp_path_factory.mktemp('world')),
                              credits=list(CREDITS))
@@ -106,7 +108,6 @@ class TestTheGroundUnderIt:
     def test_the_drawn_route_reshaped_the_land(self, baked) -> None:
         """The earthworks are in the baked ground, not only in the preview."""
         project, _result, _document = baked
-        from OpenGLContext.loaders.tiles3d.procedural import terrain_height
         world = project.world()
         conformed = world.height_fn()
         x, z = project.routes[0].points[0]
@@ -153,7 +154,6 @@ class TestWhereTheLapBegins:
 def watered(tmp_path_factory):
     """One bake of a track with a river across it, and the project it came
     from -- the same bake answers both questions asked of it below."""
-    from OpenGLContext_editor.world.hydrology import Spring
     project = _drawn()
     project.landscape.springs.append(Spring(at=(-380.0, 380.0)))
     result, _document = _bake(project, str(tmp_path_factory.mktemp('rivers')))

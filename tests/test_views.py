@@ -14,9 +14,13 @@ import numpy as np
 import pytest
 from OpenGLContext.edit.mapview import MapView, MapViewPlatform
 from OpenGLContext.edit.orbitview import OrbitView, OrbitViewPlatform
+from OpenGLContext.edit.tools import ToolManager
 from OpenGLContext.events.mouseevents import WHEEL_UP
 from OpenGLContext.multiview import OrthoViewPlatform
 
+from glisteel_editor.controls import MapControls
+from glisteel_editor.editing import RouteEditor, RouteTool
+from glisteel_editor.project import Route
 from glisteel_editor.views import LAYOUTS, editor_views, frame_landscape
 
 WINDOW = (800, 600)
@@ -203,11 +207,6 @@ class TestDrawingWhileTheMapIsOneTileOfFour:
     """The tools go on working on a map that no longer fills the window."""
 
     def _drawing(self, views):
-        from OpenGLContext.edit.tools import ToolManager
-
-        from glisteel_editor.controls import MapControls
-        from glisteel_editor.editing import RouteEditor, RouteTool
-        from glisteel_editor.project import Route
         route = Route(name='circuit', points=[])
         editor = RouteEditor(route)
         tools = ToolManager([RouteTool(editor=editor)])

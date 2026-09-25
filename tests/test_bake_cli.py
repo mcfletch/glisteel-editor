@@ -1,5 +1,6 @@
 """``glisteel-bake`` from the outside: what the command line does and refuses."""
 
+import json
 import os
 
 import pytest
@@ -40,7 +41,6 @@ class TestBakingFromTheCommandLine:
         assert (tmp_path / 'world' / 'tileset.json').read_text() == first
 
     def test_tree_density_reaches_the_world(self, tmp_path) -> None:
-        import json
         _run(tmp_path, '--quiet')
         dense = json.load(open(tmp_path / 'world' / 'tileset.json'))
         _run(tmp_path, '--quiet', '--force', '--tree-density', '0.0002')
@@ -49,7 +49,6 @@ class TestBakingFromTheCommandLine:
             < dense['extras']['vegetation']['count']
 
     def test_a_world_with_no_trees_at_all_still_bakes(self, tmp_path) -> None:
-        import json
         assert _run(tmp_path, '--quiet', '--tree-density', '0.0') == 0
         document = json.load(open(tmp_path / 'world' / 'tileset.json'))
         assert document['extras']['vegetation']['count'] == 0
@@ -74,7 +73,6 @@ class TestBakingFromTheCommandLine:
         assert (world / 'trees' / 'fir.npz').exists()
 
     def test_a_tile_forest_puts_them_in_the_tiles_instead(self, tmp_path) -> None:
-        import json
         _run(tmp_path, '--quiet', '--forest', 'tiles')
         document = json.load(open(tmp_path / 'world' / 'tileset.json'))
         assert 'vegetation' not in document['extras']
@@ -85,13 +83,11 @@ class TestBakingFromTheCommandLine:
         way -- it is what the tiles are blended and lit from, and the surface
         the world is collided against -- so which of the two is *drawn* is the
         thing the record has to state."""
-        import json
         _run(tmp_path, '--quiet', '--ground', 'tiles')
         document = json.load(open(tmp_path / 'world' / 'tileset.json'))
         assert document['extras']['terrain']['drawn'] == 'tiles'
 
     def test_and_a_field_ground_says_it_draws_itself(self, tmp_path) -> None:
-        import json
         _run(tmp_path, '--quiet')
         document = json.load(open(tmp_path / 'world' / 'tileset.json'))
         assert document['extras']['terrain']['drawn'] == 'field'

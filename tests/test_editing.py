@@ -11,7 +11,7 @@ import support
 from OpenGLContext.edit.tools import ToolManager
 from support import pointer_at as _at
 
-from glisteel_editor.editing import RouteEditor, RouteTool
+from glisteel_editor.editing import RouteEditor, RouteTool, StartTool
 
 
 def _route(points=((0.0, 0.0), (100.0, 0.0), (100.0, 100.0), (0.0, 100.0))):
@@ -347,7 +347,6 @@ class TestALineDrivenTheOtherWayRound:
     def test_the_tool_agrees_with_the_start_tool_about_which_point(self) -> None:
         # Two hit tests over one line: they answered differently, which is how
         # a drag came to move a point the designer was not pointing at.
-        from glisteel_editor.editing import StartTool
         route = self._turned()
         editor = RouteEditor(route, reach=10.0)
         StartTool(editor=editor).on_press(_at(400.0, 0.0))

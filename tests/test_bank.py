@@ -8,6 +8,8 @@ that a project's world carries the lean out to the tileset.
 import numpy as np
 import support
 
+from glisteel_editor.scene import MapScene
+
 
 def _project():
     """A closed circuit small enough that its corners have to lean."""
@@ -19,7 +21,6 @@ class TestTheRoadTheEditorShows:
         assert np.abs(_project().world().circuit().bank).max() > 0.05
 
     def test_the_preview_draws_the_lean_rather_than_a_flat_road(self) -> None:
-        from glisteel_editor.scene import MapScene
         scene = MapScene(_project(), resolution=33)
         road = scene.road()
         assert road is not None

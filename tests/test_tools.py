@@ -11,7 +11,8 @@ from OpenGLContext.ui.toolpalette import ToolButton, ToolPalette
 
 from glisteel_editor.controls import MapControls
 from glisteel_editor.editing import RouteEditor, RouteTool, editor_tools
-from glisteel_editor.project import Route
+from glisteel_editor.project import Route, new_project
+from glisteel_editor.sculpting import LandEditor
 
 VIEWPORT = (800, 600)
 
@@ -140,8 +141,6 @@ class TestThePalette:
 
 class TestSculptingAmongTheTools:
     def _rig_with_land(self, points=()):
-        from glisteel_editor.project import new_project
-        from glisteel_editor.sculpting import LandEditor
         project = new_project(extent=2048.0, points=points)
         editor = RouteEditor(project.route())
         view = MapView(centre=(0.0, 0.0), span=600.0)

@@ -3,9 +3,12 @@
 Headless: a spring is a point, a river is what the ground does with it, and the
 bed it cuts is arithmetic on the landscape's edit stack.
 """
+import json
+
 import numpy as np
 import pytest
 from OpenGLContext_editor.world.hydrology import Spring
+from OpenGLContext_editor.world.sculpt import SculptStroke
 from support import pointer_at as _at
 from support import pointer_over_nothing
 
@@ -131,7 +134,6 @@ class TestTheRiverItMakes:
         assert not np.array_equal(before[:1], after[:1])
 
     def test_sculpting_the_land_reroutes_it(self) -> None:
-        from OpenGLContext_editor.world.sculpt import SculptStroke
         project = self._project_with_water()
         before = project.landscape.channels()[0].points.copy()
         project.landscape.source.edits.append(
@@ -150,7 +152,6 @@ class TestTheFile:
 
     def test_the_bed_is_not_saved_because_it_is_worked_out(self, tmp_path) -> None:
         """A carved bed in the file would be the river as the land used to be."""
-        import json
         project = new_project(extent=2048.0)
         project.landscape.springs.append(Spring(at=(-800.0, 700.0)))
         project.landscape.channels()

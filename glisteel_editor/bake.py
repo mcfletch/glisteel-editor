@@ -37,6 +37,7 @@ from OpenGLContext_editor.bake.manifest import (
     world_name,
     write_manifest,
 )
+from OpenGLContext_editor.bake.probes import bake_probes
 from OpenGLContext_editor.world.procedural import ProceduralWorld
 
 from .recipe import (
@@ -124,7 +125,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         # Each place's environment is captured now, while the whole world and
         # its art are here to be drawn, so a run uploads it rather than
         # drawing it. Before the art moves: the captures draw the trees.
-        from OpenGLContext_editor.bake.probes import bake_probes
         baked = bake_probes(options.output)
         if not options.quiet:
             print('  places:      %d environments baked' % (baked,))

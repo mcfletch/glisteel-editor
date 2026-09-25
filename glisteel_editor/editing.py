@@ -25,6 +25,8 @@ from OpenGLContext.edit.surface import snap_to_height
 from OpenGLContext.edit.tools import Pointer, ToolManager, ToolMode
 
 from glisteel_editor.project import Route
+from glisteel_editor.sculpting import SculptTool
+from glisteel_editor.water import WaterTool
 
 __all__ = ['RouteEditor', 'RouteTool', 'RouteState', 'StartTool',
            'editor_tools']
@@ -489,10 +491,8 @@ def editor_tools(editor: RouteEditor, view: MapView,
     tools: list[ToolMode] = [RouteTool(editor=editor),
                              StartTool(editor=editor)]
     if land is not None:
-        from glisteel_editor.sculpting import SculptTool
         tools.append(SculptTool(editor=land))
     if water is not None:
-        from glisteel_editor.water import WaterTool
         tools.append(WaterTool(editor=water))
     tools.append(PanTool(view, viewport, on_change=on_change))
     return ToolManager(tools, on_change=on_tool)

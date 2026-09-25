@@ -30,6 +30,11 @@ from typing import Any
 
 import numpy as np
 from OpenGLContext.edit.relief import shade_colors
+from OpenGLContext.loaders.tiles3d.procedural import (
+    WATER_LEVEL,
+    terrain_colors,
+    terrain_patch,
+)
 from OpenGLContext.scenegraph.appearance import Appearance
 from OpenGLContext.scenegraph.basenodes import Box, Coordinate, IndexedLineSet
 from OpenGLContext.scenegraph.group import Group
@@ -38,10 +43,12 @@ from OpenGLContext.scenegraph.pbrmesh import PBRMesh
 from OpenGLContext.scenegraph.road import (
     banked_sections,
     road_mesh,
+    tarmac_material,
     widened_sections,
 )
 from OpenGLContext.scenegraph.shape import Shape
 from OpenGLContext.scenegraph.transform import Transform
+from OpenGLContext_editor.world.contours import contour_levels, contours_of
 
 from glisteel_editor.detail import GroundPatch, patch_for
 from glisteel_editor.project import Project
@@ -404,11 +411,6 @@ class MapScene:
         admired, and a light in the scene would shade it a second time.
         """
         if self._ground is None:
-            from OpenGLContext.loaders.tiles3d.procedural import (
-                WATER_LEVEL,
-                terrain_colors,
-                terrain_patch,
-            )
             patch = self.patch()
             positions, normals, colors, indices = terrain_patch(
                 patch.minimum[0], patch.maximum[0],
@@ -448,7 +450,6 @@ class MapScene:
         landscape chooses: the closest description that stays under
         :attr:`READABLE_CONTOURS` lines.
         """
-        from OpenGLContext_editor.world.contours import contour_levels
         low, high = self.relief()
         for interval in sorted(offered):
             if len(contour_levels(low, high, interval)) <= self.READABLE_CONTOURS:
@@ -465,7 +466,6 @@ class MapScene:
         if not self._show_contours:
             return None
         if self._contours is None:
-            from OpenGLContext_editor.world.contours import contours_of
             patch = self.patch()
             side = patch.maximum[0] - patch.minimum[0]
             centre = ((patch.minimum[0] + patch.maximum[0]) / 2.0,
@@ -511,7 +511,6 @@ class MapScene:
                 return None
             path = self.world().circuit()
             if self._tarmac is None:
-                from OpenGLContext.scenegraph.road import tarmac_material
                 self._tarmac = tarmac_material()
             line = path.resampled(PREVIEW_SPACING)
             # The preview is the road the bake will build, banked corners and

@@ -27,9 +27,19 @@ from __future__ import annotations
 
 import argparse
 import os
+import sys
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
+
+from OpenGLContext_editor.world.procedural import ProceduralWorld
+
+# tomllib is the standard library's from 3.11; tomli is the same reader under
+# its earlier name, and a declared dependency below that.
+if sys.version_info >= (3, 11):
+    import tomllib as toml
+else:                                       # pragma: no cover - Python 3.10
+    import tomli as toml
 
 __all__ = ['BAKE_SETTINGS', 'BadRecipe', 'Setting', 'Settings',
            'WORLD_SETTINGS', 'add_settings', 'read_recipe', 'resolve',
@@ -110,7 +120,6 @@ def _world_settings() -> tuple[Setting, ...]:
     """What the world is: everything that changes the place being driven
     through, as :class:`ProceduralWorld` declares it
     (:attr:`~OpenGLContext_editor.world.procedural.ProceduralWorld.SETTINGS`)."""
-    from OpenGLContext_editor.world.procedural import ProceduralWorld
     return tuple(_offered(one) for one in ProceduralWorld.SETTINGS)
 
 
@@ -211,25 +220,11 @@ def world_for(settings: Settings) -> Any:
     tiled world's ground is only as fine as its deepest tile, and what a portal
     has to cover is measured against a cell of it.
     """
-    from OpenGLContext_editor.world.procedural import ProceduralWorld
     return ProceduralWorld(depth=settings.depth, **settings.world)
 
 
 def _read_toml(path: str) -> dict[str, Any]:
-    """A TOML document, whatever reads one on this interpreter.
-
-    ``tomllib`` is the standard library's from 3.11; ``tomli`` is the same
-    reader under its earlier name, and a declared dependency below that.
-    """
-    try:
-        import tomllib as toml
-    except ImportError:                     # pragma: no cover - Python 3.10
-        try:
-            import tomli as toml  # type: ignore[no-redef]
-        except ImportError as error:       # pragma: no cover - not installed
-            raise BadRecipe(
-                'reading a recipe needs tomli on Python 3.10; it is a declared '
-                'dependency, so this is an incomplete install') from error
+    """The TOML document at ``path``, as a dictionary."""
     if not os.path.isfile(path):
         raise BadRecipe('there is no recipe at %s' % (path,))
     try:

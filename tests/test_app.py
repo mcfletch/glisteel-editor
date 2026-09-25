@@ -5,7 +5,7 @@ and one that does not is how an afternoon's work disappears. Whether to ask is a
 question about a project, so it is answered here and the window's job is to put
 the question.
 """
-from glisteel_editor.app import bake_directory, would_lose_work
+from glisteel_editor.app import EditorContext, bake_directory, would_lose_work
 from glisteel_editor.project import new_project
 
 
@@ -54,8 +54,6 @@ class TestPuttingTheQuestion:
     """
 
     def context(self, project):
-        from glisteel_editor.app import EditorContext
-
         window = EditorContext.__new__(EditorContext)
         window.project = project
         window.pushed = []
