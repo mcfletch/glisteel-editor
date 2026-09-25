@@ -344,7 +344,25 @@ settings nobody chose with nothing saying so.
 | `variety` | how unlike each other the corners and straights are, 0 to 1 |
 | `structures` | `--no-structures` leaves the road on the land, with no viaducts or bores |
 | `posted` | the speed the circuit is signed at, in km/h; 0 leaves it unposted |
+| `places` | `--no-places` gives the world no zones: every bore, causeway, bridge and stretch of forest is otherwise a place lit by an environment captured in it and heard with its own birdsong, surf or echo |
 | `seed`, `extent`, `depth` | which world, how big, and how finely it is cut up |
+
+### Places and their environments
+
+A world with places (the default) has each place's environment captured as it
+is baked, so a run uploads it rather than drawing it. That capture renders the
+world, so the bake needs a GPU it can draw with: an OpenGL 3.3 core context,
+through a window or EGL. On a machine without one, `--no-probes` leaves the
+environments to be captured while the game runs, and `--no-places` bakes a
+world with no places at all.
+
+`glisteel`'s `release-assets.py` bakes every shipped recipe with places, so it
+needs the same GPU.
+
+The manifest records the day a world was baked. Where `SOURCE_DATE_EPOCH` is
+set (seconds since 1970, UTC) that day is used instead of today, so the same
+recipe baked on another day gives the same bytes; `release-assets.py` sets it
+to the date of glisteel's last commit.
 
 ### One copy of the art, not four
 
@@ -399,37 +417,40 @@ plan view, the tool modes and the menus belong to the engine's
 
 ## Limits
 
-- **Five landscapes, or a file.** The shipped procedural terrain and four
+- Five landscapes, or a file - the shipped procedural terrain and four
   presets, at a size and a relief, or an SRTM `.hgt` elevation file you supply.
   Nothing is fetched over the network, and there is no file browser: an
   elevation file is named on the command line.
-- **Contours are drawn, not laid out.** They are extracted from the height field
-  at the interval you choose and drawn over the ground; nothing labels them with
-  their elevation on the map yet.
-- **One route per project.** The model holds a list; the interface draws the
+- Contours are drawn, not laid out - they are extracted from the height field
+  at the interval you choose and drawn over the ground, with no elevation
+  labels on the map.
+- One route per project - the model holds a list; the interface draws the
   first.
-- **The tools draw on the map.** The elevations and the three-quarter view show
+- The tools draw on the map - the elevations and the three-quarter view show
   what the line is doing and move their own cameras; a point is put down, moved
   or taken out on the plan.
-- **The views are placed where the arrangement puts them.** The split and the
-  quad divide the window down the middle; there is no splitter to drag yet.
-- **Undo belongs to the tool in force.** Changing the landscape from the Terrain
+- The views are divided by lines you drag - the split and the quad start with
+  the window divided down the middle, and dragging a line between two views
+  moves it.
+- Undo belongs to the tool in force - changing the landscape from the Terrain
   menu, or its size, is not on any history. Within a tool, one gesture is one
   step: a point or a spring dragged across the map is taken back in one, and
   Escape mid-drag puts it back where it started.
-- **A river is a carved bed**, with water in it where it runs below the
+- A river is a carved bed, with water in it where it runs below the
   waterline. A stream down a mountainside is a valley rather than a ribbon of
   water.
-- **The ground is redrawn when a stroke ends**, not while it is being dragged:
+- The ground is redrawn when a stroke ends, not while it is being dragged:
   re-meshing the landscape and re-settling the road per pointer movement would
   make the gesture a slideshow. The brush ring is what moves in the meantime.
-- **`Open` reopens the file named on the command line** rather than putting up a
+- `Open` reopens the file named on the command line rather than putting up a
   file browser. `New` and `Open` both ask before replacing a track that has
   changes not in a file, as `Quit` does.
-- **A project file is written whole or not at all.** It goes to a temporary file
+- A project file is written whole or not at all - it goes to a temporary file
   beside the target and is moved onto it, so a save interrupted by a full disk
-  or a lost machine leaves the previous version rather than nothing. It is UTF-8,
-  so a track named in any language reads the same on another machine.
+  or a lost machine leaves the previous version. It is UTF-8, so a track named
+  in any language reads the same on another machine.
+- A bake with places needs a GPU - see
+  [Places and their environments](#places-and-their-environments).
 
 ## Developing
 
