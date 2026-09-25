@@ -34,39 +34,40 @@ import os
 import sys
 from typing import Any
 
+# The engine reads these at import time, so they are set before it is imported.
 os.environ.setdefault('OPENGLCONTEXT_BACKEND', 'glfw')
 os.environ.setdefault('OPENGLCONTEXT_RENDERER', 'pbr')
 
-from OpenGLContext import testingcontext  # noqa: E402
-from OpenGLContext.edit.mapview import MapView  # noqa: E402
-from OpenGLContext.edit.orbitview import OrbitView  # noqa: E402
-from OpenGLContext.move.viewplatform import ViewPlatform  # noqa: E402
-from OpenGLContext.scenegraph.scenegraph import SceneGraph  # noqa: E402
-from OpenGLContext.ui import dialogs  # noqa: E402
-from OpenGLContext.ui.menu import MenuBar, MenuItem  # noqa: E402
-from OpenGLContext.ui.overlay import OverlayMixin  # noqa: E402
-from OpenGLContext.ui.toolpalette import ToolPalette  # noqa: E402
-from OpenGLContext.ui.viewchrome import ViewChrome  # noqa: E402
-from OpenGLContext.ui.widgets import Separator  # noqa: E402
-from OpenGLContext.viewer import environment  # noqa: E402
-from OpenGLContext.viewer.sceneviewer import ViewerContext  # noqa: E402
+from OpenGLContext import testingcontext
+from OpenGLContext.edit.mapview import MapView
+from OpenGLContext.edit.orbitview import OrbitView
+from OpenGLContext.move.viewplatform import ViewPlatform
+from OpenGLContext.scenegraph.scenegraph import SceneGraph
+from OpenGLContext.ui import dialogs
+from OpenGLContext.ui.menu import MenuBar, MenuItem
+from OpenGLContext.ui.overlay import OverlayMixin
+from OpenGLContext.ui.toolpalette import ToolPalette
+from OpenGLContext.ui.viewchrome import ViewChrome
+from OpenGLContext.ui.widgets import Separator
+from OpenGLContext.viewer import environment
+from OpenGLContext.viewer.sceneviewer import ViewerContext
 
-from glisteel_editor.controls import ZOOM_STEP, MapControls  # noqa: E402
-from glisteel_editor.editing import RouteEditor, editor_tools  # noqa: E402
-from glisteel_editor.project import Project, new_project  # noqa: E402
-from glisteel_editor.scene import (  # noqa: E402
+from glisteel_editor.controls import ZOOM_STEP, MapControls
+from glisteel_editor.editing import RouteEditor, editor_tools
+from glisteel_editor.project import Project, new_project
+from glisteel_editor.scene import (
     CONTOUR_INTERVAL,
     CONTOUR_INTERVALS_OFFERED,
     MapScene,
 )
-from glisteel_editor.sculpting import LandEditor  # noqa: E402
-from glisteel_editor.status import EditorStatus  # noqa: E402
-from glisteel_editor.views import (  # noqa: E402
+from glisteel_editor.sculpting import LandEditor
+from glisteel_editor.status import EditorStatus
+from glisteel_editor.views import (
     LAYOUTS,
     editor_views,
     frame_landscape,
 )
-from glisteel_editor.water import WaterEditor  # noqa: E402
+from glisteel_editor.water import WaterEditor
 
 log = logging.getLogger(__name__)
 

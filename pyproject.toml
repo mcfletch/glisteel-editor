@@ -82,17 +82,17 @@ select = [
     "S110", # no silent try/except/pass
     "PGH003", "PGH004",  # a type: ignore or noqa names the codes it silences
     "PLE0604", "PLE0605",  # __all__ is a list or tuple of strings
+    "S112",   # no silent try/except/continue
+    "TRY400", # an error logged from an except keeps its traceback
+    "RUF012",  # a mutable class attribute is declared ClassVar
+    "RUF100",  # no noqa for a code that is not reported there
+    "S102", "S202", "S301", "S307", "S310",  # no exec, eval, pickle, unchecked tar or URL scheme
 ]
 ignore = [
     "E501",   # line too long -- kept readable by hand, as in the engine
     "E741",   # ambiguous name -- x/y/z read naturally as coordinates
     "UP031",  # percent formatting, as the engine uses throughout
 ]
-
-[tool.ruff.lint.per-file-ignores]
-# The entry module sets the OPENGLCONTEXT_* environment the engine reads at
-# import time, so its imports deliberately are not all at the top.
-"glisteel_editor/app.py" = ["E402"]
 
 [tool.mypy]
 # 3.12 rather than the 3.10 floor in ``requires-python``: numpy's own stubs use
