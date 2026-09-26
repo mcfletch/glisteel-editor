@@ -709,7 +709,7 @@ class MapScene:
             surface = getattr(child, 'geometry', None)
             if surface is None:                  # a marker rather than a sheet
                 continue
-            if getattr(surface, 'wave_style', None) is not None:
+            if getattr(surface, 'waveStyle', None):
                 surface.wave_time = float(when)
                 moved = True
         return moved
