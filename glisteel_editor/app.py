@@ -39,17 +39,17 @@ import time
 from typing import Any
 
 # The engine reads these at import time, so they are set before it is imported.
-os.environ.setdefault('OPENGLCONTEXT_BACKEND', 'glfw')
 os.environ.setdefault('OPENGLCONTEXT_RENDERER', 'pbr')
 
-from OpenGLContext import testingcontext
+from OpenGLContext.context import Context
+from OpenGLContext.contextdefinition import ContextDefinition
 from OpenGLContext.edit.mapview import MapView
 from OpenGLContext.edit.orbitview import OrbitView
 from OpenGLContext.move.viewplatform import ViewPlatform
+from OpenGLContext.multiview.viewset import ViewSet
 from OpenGLContext.scenegraph.scenegraph import SceneGraph
 from OpenGLContext.ui import dialogs
 from OpenGLContext.ui.menu import MenuBar, MenuItem
-from OpenGLContext.ui.overlay import OverlayMixin
 from OpenGLContext.ui.toolpalette import ToolPalette
 from OpenGLContext.ui.viewchrome import ViewChrome
 from OpenGLContext.ui.widgets import Separator
@@ -76,8 +76,6 @@ from glisteel_editor.views import (
 from glisteel_editor.water import WaterEditor
 
 log = logging.getLogger(__name__)
-
-BaseContext: Any = testingcontext.getInteractive()
 
 #: How the world is lit for the map. Bright and from high up: a plan view is
 #: read, not admired, and long shadows across it hide the line.
@@ -109,8 +107,13 @@ LAYOUT_ITEMS = tuple((text, name) for text, name, _key in LAYOUT_MENU)
 CONTOUR_INTERVALS = CONTOUR_INTERVALS_OFFERED
 
 
-class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a window
+class EditorContext(Context):    # pragma: no cover - needs a window
     """The editor's window: a map, a menu bar, and the tools in between."""
+
+    windowSystemName = 'glfw'
+    #: No navigation: the views' own cameras are what the pointer moves, and
+    #: the arrow keys belong to the tools.
+    contextDefinition = ContextDefinition(navigation=None)
 
     config: Any = None
 
@@ -118,6 +121,9 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
     #: at it" view puts up. Declared as what they have in common, because both
     #: are set here and a checker otherwise takes the first as the only kind.
     platform: ViewPlatform
+    #: The map, the elevations and the angled view (``editor_views``), made in
+    #: ``OnInit`` and there from then on.
+    views: ViewSet
 
     #: The node the scene was last built into, so the next build knows which
     #: of the window's children to replace. Held rather than marked on the
@@ -389,14 +395,12 @@ class EditorContext(OverlayMixin, BaseContext):    # pragma: no cover - needs a 
         The scale, the pointer's reading and the size of a handle all come from
         the window's height, so a resize is not something the map can miss.
         """
+        # Context places the views, telling each camera the size of its own
+        # tile, which the map's scale and the angled view's aspect ratio are
+        # measured against.
         super().ViewPort(width, height)
-        views = getattr(self, 'views', None)
-        if views is None:
+        if self.views is None:
             return
-        # Each view's camera is told the size of its own tile, which is what
-        # the map's scale and the angled view's aspect ratio are measured
-        # against.
-        views.arrange(width, height or 1)
         self._report()
         # Not rebuilt here: a window being dragged to a new size sends a
         # stream of these, and re-meshing the landscape for each one would
