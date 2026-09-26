@@ -50,7 +50,6 @@ from OpenGLContext.multiview.viewset import ViewSet
 from OpenGLContext.scenegraph.scenegraph import SceneGraph
 from OpenGLContext.ui import dialogs
 from OpenGLContext.ui.menu import MenuBar, MenuItem
-from OpenGLContext.ui.overlay import OverlayMixin
 from OpenGLContext.ui.toolpalette import ToolPalette
 from OpenGLContext.ui.viewchrome import ViewChrome
 from OpenGLContext.ui.widgets import Separator
@@ -108,7 +107,7 @@ LAYOUT_ITEMS = tuple((text, name) for text, name, _key in LAYOUT_MENU)
 CONTOUR_INTERVALS = CONTOUR_INTERVALS_OFFERED
 
 
-class EditorContext(OverlayMixin, Context):    # pragma: no cover - needs a window
+class EditorContext(Context):    # pragma: no cover - needs a window
     """The editor's window: a map, a menu bar, and the tools in between."""
 
     windowSystemName = 'glfw'
