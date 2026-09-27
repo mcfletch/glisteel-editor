@@ -12,16 +12,15 @@ world back.
 """
 from __future__ import annotations
 
-import contextlib
 import json
 import logging
 import os
-import tempfile
 from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from typing import Any
 
 import numpy as np
+from OpenGLContext import atomicfiles
 from OpenGLContext.loaders.documentvalues import DocumentValues
 from OpenGLContext.loaders.tiles3d.procedural import WATER_LEVEL
 from OpenGLContext_editor.world.height import HeightSource
@@ -222,8 +221,8 @@ class Route:
                                         minimum=0),
                    reversed=values.flag(document.get('reversed'), False,
                                         'route reversed'),
-                   points=[(float(p[0]), float(p[1]))
-                           for p in document.get('points', ())])
+                   points=[(x, z) for x, z in values.vectors(
+                       document.get('points'), 'route points', length=2)])
 
 
 @dataclass
@@ -332,12 +331,10 @@ class Project:
     def save(self, path: str | None = None) -> str:
         """Write the project out, and remember where it went.
 
-        Written beside the target and moved onto it, because a project file is
-        the only copy of a designer's decisions: a write that truncated the file
-        first would leave nothing at all if the disk filled or the machine went
-        down half way through, and what it destroyed is the one thing here that
-        cannot be made again. ``os.replace`` is atomic on every platform this
-        runs on, so the file is either the old version or the new one.
+        Written whole or not at all (:func:`OpenGLContext.atomicfiles.write_text`),
+        because a project file is the only copy of a designer's decisions: a
+        write that truncated the file first would leave nothing at all if the
+        disk filled or the machine went down half way through.
 
         In UTF-8, so a track named in any language reads back the same on
         another machine rather than in whatever encoding this one prefers, and
@@ -351,18 +348,7 @@ class Project:
         # rather than a row of escapes.
         document = json.dumps(self.to_json(), indent=2, sort_keys=False,
                               ensure_ascii=False) + '\n'
-        beside = os.path.dirname(os.path.abspath(target))
-        handle, temporary = tempfile.mkstemp(dir=beside, suffix='.glisteel-new')
-        try:
-            with os.fdopen(handle, 'w', encoding='utf-8') as writing:
-                writing.write(document)
-            os.replace(temporary, target)
-        except BaseException:
-            # Nothing half-written left beside the designer's file, whatever
-            # went wrong -- including an interrupt.
-            with contextlib.suppress(OSError):
-                os.unlink(temporary)
-            raise
+        atomicfiles.write_text(target, document)
         self.path = target
         self.dirty = False
         return target

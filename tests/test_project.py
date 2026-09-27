@@ -363,6 +363,13 @@ class TestAMalformedFile:
         route = Route.from_json({'closed': 'false', 'reversed': 'yes'})
         assert (route.closed, route.reversed) == (False, True)
 
+    def test_a_point_that_is_not_one_is_left_out_and_reported(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        route = Route.from_json({'points': [[1, 2], [3], [4, 'x'], [5, 6]]})
+        assert route.points == [(1.0, 2.0), (5.0, 6.0)]
+        assert caplog.text.count('left out') == 2
+
     def test_a_number_that_is_not_one_takes_the_default_and_is_reported(
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
