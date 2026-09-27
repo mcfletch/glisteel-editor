@@ -122,9 +122,8 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 # The entry module sets the OPENGLCONTEXT_* environment the engine reads at
-# import time, and a test sets the environment of the process it starts.
+# import time.
 "glisteel_editor/app.py" = ["TID251"]
-"tests/*" = ["TID251"]
 
 [tool.mypy]
 # 3.12 rather than the 3.10 floor in ``requires-python``: numpy's own stubs use
