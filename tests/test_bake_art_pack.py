@@ -10,9 +10,11 @@ same directory, so `trees/...` in a tile resolves exactly as it does in a bake
 that never split.
 """
 
+import contextlib
 import os
 
 import pytest
+from OpenGLContext import atomicfiles
 
 from glisteel_editor import bake
 
@@ -98,3 +100,32 @@ class TestFromTheCommandLine:
 
     def test_a_bake_without_it_keeps_its_art(self) -> None:
         assert bake.build_parser().parse_args([]).art_pack is None
+
+
+class TestTwoTracksSplittingAtOnce:
+    def test_each_directory_is_checked_and_staged_under_its_lock(self, tmp_path,
+                                                                 monkeypatch) -> None:
+        """Two bakes writing one pack in parallel would otherwise both find a
+        directory missing and both stage it."""
+        events = []
+        staged = atomicfiles.staged_directory
+
+        @contextlib.contextmanager
+        def lock(path):
+            events.append(('lock', os.path.basename(path)))
+            yield
+            events.append(('unlock', os.path.basename(path)))
+
+        @contextlib.contextmanager
+        def staging(path):
+            events.append(('stage', os.path.basename(path)))
+            with staged(path) as where:
+                yield where
+
+        monkeypatch.setattr(atomicfiles, 'file_lock', lock)
+        monkeypatch.setattr(atomicfiles, 'staged_directory', staging)
+        bake.split_art(baked(str(tmp_path / 'track')), str(tmp_path / 'art'))
+        for name in bake.SHARED_ART:
+            at = events.index(('stage', name))
+            assert events[at - 1] == ('lock', '.%s.lock' % name)
+            assert events[at + 1] == ('unlock', '.%s.lock' % name)

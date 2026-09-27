@@ -171,20 +171,23 @@ def split_art(track: str, pack: str) -> list[str]:
         if not os.path.isdir(here):
             continue
         there = os.path.join(pack, name)
-        if os.path.isdir(there):
-            if not _same_tree(here, there):
-                raise ArtDiffers(
-                    "%s is not the %s already in %s. The art packs share is "
-                    "meant to be one set of files; two that differ would put "
-                    "one track's art under another's tiles."
-                    % (here, name, pack))
-            atomicfiles.remove_directory(here)
-            continue
-        # Copied into a staged directory rather than renamed, since the pack
-        # may be on another filesystem: an interrupted split leaves the pack
-        # without this directory, never with part of it.
-        with atomicfiles.staged_directory(there) as staging:
-            shutil.copytree(here, staging, dirs_exist_ok=True)
+        # Held from the check to the copy, so two bakes splitting into one pack
+        # at once cannot both find the directory missing and both stage it.
+        with atomicfiles.file_lock(os.path.join(pack, '.%s.lock' % (name,))):
+            if os.path.isdir(there):
+                if not _same_tree(here, there):
+                    raise ArtDiffers(
+                        "%s is not the %s already in %s. The art packs share is "
+                        "meant to be one set of files; two that differ would put "
+                        "one track's art under another's tiles."
+                        % (here, name, pack))
+                atomicfiles.remove_directory(here)
+                continue
+            # Copied into a staged directory rather than renamed, since the
+            # pack may be on another filesystem: an interrupted split leaves
+            # the pack without this directory, never with part of it.
+            with atomicfiles.staged_directory(there) as staging:
+                shutil.copytree(here, staging, dirs_exist_ok=True)
         atomicfiles.remove_directory(here)
         moved.append(name)
     return moved
