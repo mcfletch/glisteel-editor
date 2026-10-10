@@ -38,8 +38,8 @@ from OpenGLContext.loaders.tiles3d.procedural import (
 from OpenGLContext.scenegraph.appearance import Appearance
 from OpenGLContext.scenegraph.basenodes import Box, Coordinate, IndexedLineSet
 from OpenGLContext.scenegraph.group import Group
-from OpenGLContext.scenegraph.pbrmaterial import PBRMaterial
 from OpenGLContext.scenegraph.pbrmesh import PBRMesh
+from OpenGLContext.scenegraph.physicalmaterial import PhysicalMaterial
 from OpenGLContext.scenegraph.road import (
     banked_sections,
     road_mesh,
@@ -48,6 +48,7 @@ from OpenGLContext.scenegraph.road import (
 )
 from OpenGLContext.scenegraph.shape import Shape
 from OpenGLContext.scenegraph.transform import Transform
+from OpenGLContext.scenegraph.unlitmaterial import UnlitMaterial
 from OpenGLContext_editor.world.contours import contour_levels, contours_of
 
 from glisteel_editor.detail import GroundPatch, patch_for
@@ -421,9 +422,10 @@ class MapScene:
             self._ground = Shape(
                 geometry=PBRMesh(positions=positions, normals=normals,
                                  colors=colors, indices=indices),
-                appearance=Appearance(material=PBRMaterial(
-                    baseColor=(1.0, 1.0, 1.0), metallic=0.0, roughness=0.95,
-                    unlit=self._hillshade)))
+                appearance=Appearance(material=(
+                    UnlitMaterial(emissiveColor=(1.0, 1.0, 1.0)) if self._hillshade
+                    else PhysicalMaterial(baseColor=(1.0, 1.0, 1.0), metallic=0.0,
+                                          roughness=0.95))))
         return self._ground
 
     # -- how high the land is ----------------------------------------------
@@ -497,9 +499,7 @@ class MapScene:
         return Shape(
             geometry=IndexedLineSet(coord=Coordinate(point=points),
                                     coordIndex=index, color=None),
-            appearance=Appearance(material=PBRMaterial(
-                baseColor=CONTOUR_COLOUR, emissiveColor=CONTOUR_COLOUR,
-                metallic=0.0, unlit=True)))
+            appearance=Appearance(material=UnlitMaterial(emissiveColor=CONTOUR_COLOUR)))
 
     # -- the road ----------------------------------------------------------
     def road(self) -> Shape | None:
@@ -570,10 +570,9 @@ class MapScene:
         self._structures = Shape(
             geometry=PBRMesh(positions=np.asarray(points, 'f'),
                              colors=np.asarray(colours, 'f'),
-                             indices=np.asarray(faces, np.uint32)),
-            appearance=Appearance(material=PBRMaterial(
-                baseColor=(1.0, 1.0, 1.0), emissiveColor=(1.0, 1.0, 1.0),
-                metallic=0.0, roughness=1.0, unlit=True, doubleSided=True)))
+                             indices=np.asarray(faces, np.uint32),
+                             solid=False),
+            appearance=Appearance(material=UnlitMaterial(emissiveColor=(1.0, 1.0, 1.0))))
         return self._structures
 
     def structure_counts(self) -> dict[str, int]:
@@ -612,9 +611,7 @@ class MapScene:
         return Shape(
             geometry=IndexedLineSet(coord=Coordinate(point=points),
                                     coordIndex=[0, 1, -1], color=None),
-            appearance=Appearance(material=PBRMaterial(
-                baseColor=START_COLOUR, emissiveColor=START_COLOUR,
-                metallic=0.0, unlit=True)))
+            appearance=Appearance(material=UnlitMaterial(emissiveColor=START_COLOUR)))
 
     @staticmethod
     def _heading(route: Any) -> np.ndarray:
@@ -668,12 +665,9 @@ class MapScene:
         if surface is None:
             return None
         if self._water_material is None:
-            self._water_material = PBRMaterial(
-                baseColor=RIVER_COLOUR, emissiveColor=RIVER_COLOUR,
-                metallic=0.0, roughness=0.4, unlit=True)
-        surface.material = self._water_material
-        return Shape(geometry=surface,
-                     appearance=Appearance(material=self._water_material))
+            self._water_material = UnlitMaterial(emissiveColor=RIVER_COLOUR)
+        surface.appearance = Appearance(material=self._water_material)
+        return Shape(geometry=surface, appearance=surface.appearance)
 
     def _river_width(self) -> float:
         """How narrow a river may be drawn, in metres at the current scale."""
@@ -689,9 +683,7 @@ class MapScene:
                 translation=(x, self.height_at(x, z) + WATER_LIFT, z),
                 children=[Shape(
                     geometry=Box(size=(size, size, size)),
-                    appearance=Appearance(material=PBRMaterial(
-                        baseColor=SPRING_COLOUR, emissiveColor=SPRING_COLOUR,
-                        metallic=0.0, unlit=True)))]))
+                    appearance=Appearance(material=UnlitMaterial(emissiveColor=SPRING_COLOUR)))]))
         return marks
 
     def advance(self, when: float) -> bool:
@@ -731,9 +723,7 @@ class MapScene:
             geometry=IndexedLineSet(
                 coord=Coordinate(point=points),
                 coordIndex=[*range(len(points)), -1], color=None),
-            appearance=Appearance(material=PBRMaterial(
-                baseColor=BRUSH_COLOUR, emissiveColor=BRUSH_COLOUR,
-                metallic=0.0, unlit=True)))
+            appearance=Appearance(material=UnlitMaterial(emissiveColor=BRUSH_COLOUR)))
 
     # -- the line the designer drew ---------------------------------------
     def guide(self) -> Shape | None:
@@ -753,9 +743,7 @@ class MapScene:
             geometry=IndexedLineSet(
                 coord=Coordinate(point=points), coordIndex=index,
                 color=None),
-            appearance=Appearance(material=PBRMaterial(
-                baseColor=LINE_COLOUR, emissiveColor=LINE_COLOUR,
-                metallic=0.0, unlit=True)))
+            appearance=Appearance(material=UnlitMaterial(emissiveColor=LINE_COLOUR)))
 
     def markers(self, metres_per_pixel: float,
                 hovered: int | None = None) -> Group:
@@ -774,9 +762,7 @@ class MapScene:
                 translation=(float(x), float(y), float(z)),
                 children=[Shape(
                     geometry=Box(size=(size, size, size)),
-                    appearance=Appearance(material=PBRMaterial(
-                        baseColor=colour, emissiveColor=colour,
-                        metallic=0.0, unlit=True)))]))
+                    appearance=Appearance(material=UnlitMaterial(emissiveColor=colour)))]))
         return Group(children=children)
 
     # -- all of it ---------------------------------------------------------

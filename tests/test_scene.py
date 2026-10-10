@@ -10,8 +10,10 @@ import numpy as np
 import pytest
 import support
 from OpenGLContext.scenegraph.basenodes import IndexedLineSet
+from OpenGLContext.scenegraph.physicalmaterial import PhysicalMaterial
 from OpenGLContext.scenegraph.shape import Shape
 from OpenGLContext.scenegraph.transform import Transform
+from OpenGLContext.scenegraph.unlitmaterial import UnlitMaterial
 from OpenGLContext_editor.world.contours import contour_levels, contours_of
 from OpenGLContext_editor.world.hydrology import Spring
 from OpenGLContext_editor.world.presets import PresetBase
@@ -120,8 +122,8 @@ class TestTheLineTheDesignerDrew:
         scene = _scene()
         plain = scene.markers(metres_per_pixel=1.0, hovered=None).children[1]
         lit = scene.markers(metres_per_pixel=1.0, hovered=1).children[1]
-        assert tuple(lit.children[0].appearance.material.baseColor) \
-            != tuple(plain.children[0].appearance.material.baseColor)
+        assert tuple(lit.children[0].appearance.material.emissiveColor) \
+            != tuple(plain.children[0].appearance.material.emissiveColor)
 
     def test_a_route_with_nothing_in_it_draws_nothing(self) -> None:
         project = _project(points=())
@@ -229,6 +231,9 @@ class TestWhereTheRoadIsCarried:
                   for kind in scene.structure_counts()}
         assert colours == wanted
 
+    def test_they_are_drawn_from_both_faces(self) -> None:
+        assert not self._scene().structures().geometry.solid
+
     def test_they_are_wide_enough_to_see_at_map_scale(self) -> None:
         """A road drawn at a kilometre a screen is a hairline."""
         scene = self._scene()
@@ -270,12 +275,12 @@ class TestReadingTheRelief:
         """The shading is in the vertex colours, so a light would double it."""
         scene = _scene()
         scene.hillshade = True
-        assert scene.ground().appearance.material.unlit
+        assert isinstance(scene.ground().appearance.material, UnlitMaterial)
 
     def test_unshaded_ground_is_lit_as_before(self) -> None:
         scene = _scene()
         scene.hillshade = False
-        assert not scene.ground().appearance.material.unlit
+        assert isinstance(scene.ground().appearance.material, PhysicalMaterial)
 
     def test_turning_it_on_rebuilds_the_land(self) -> None:
         scene = _scene()
@@ -461,8 +466,14 @@ class TestTheWater:
                   if getattr(child, 'appearance', None) is not None]
         assert rivers
         material = rivers[0].appearance.material
-        assert material.unlit
-        assert material.baseColor[2] > material.baseColor[0]
+        assert isinstance(material, UnlitMaterial)
+        assert material.emissiveColor[2] > material.emissiveColor[0]
+
+    def test_the_river_mesh_wears_the_map_water(self) -> None:
+        scene = self._watered()
+        river = next(child for child in scene.water().children
+                     if getattr(child, 'appearance', None) is not None)
+        assert river.geometry.appearance is river.appearance
 
     def test_the_spring_is_marked_where_it_was_put(self) -> None:
         scene = self._watered()
