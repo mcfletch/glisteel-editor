@@ -425,7 +425,7 @@ class EditorContext(Context):    # pragma: no cover - needs a window
         self.chrome.reserved = room
         self.overlays.invalidate()
 
-    def OnIdle(self, *args: Any) -> int:  # noqa: ARG002 Context.OnIdle's signature; the arguments are the backend's
+    def OnIdle(self, *arguments: Any) -> int:  # noqa: ARG002 Context.OnIdle's signature; the arguments are the backend's
         """Between frames: put right whatever an edit or a resize left stale."""
         # Water flows: the surfaces are on the card and this is the one number
         # they are drawn from, so it costs a uniform a frame.
